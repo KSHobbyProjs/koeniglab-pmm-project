@@ -3,6 +3,6 @@ import physics_models as pm
 import numpy as np
 
 if __name__=="__main__":
-    gauss = pm.gaussian.Gaussian(N=32)
+    gauss = pm.noninteracting_spins.NoninteractingSpins(N=32)
     Ls = np.linspace(5, 20, 20)
-    print(gauss.get_eigenvalues(Ls))
+    print(gauss.get_eigenvectors(Ls, k_num=2))

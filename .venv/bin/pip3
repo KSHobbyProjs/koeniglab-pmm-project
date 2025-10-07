@@ -1,4 +1,4 @@
-#!/home/hoshinoyume/koeniglab-pmm-project/.venv/bin/python3
+#!/home/keanan/koeniglab-pmm-project/.venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys
