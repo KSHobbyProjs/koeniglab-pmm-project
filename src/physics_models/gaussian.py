@@ -24,7 +24,7 @@ class Gaussian(base_model.BaseModel):
         x, y, z = Gaussian._get_relative_coods(i, N)
         return np.sqrt(x**2 + y**2 + z**2)
 
-    def _construct_H(self, L):
+    def construct_H(self, L):
         a = L / self._N
         N_tot = self._N**3
         indices = np.arange(N_tot, dtype=np.int32)

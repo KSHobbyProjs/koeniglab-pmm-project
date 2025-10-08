@@ -24,7 +24,7 @@ class BaseModel(abc.ABC):
 
     This class defines common methods to compute eigenvalues and eigenvectors
     for Hamiltonians H(L) acting on an N-site lattice. Subclasses must implement
-    the method `_construct_H(L)` to return the Hamiltonian matrix for a given L.
+    the method `construct_H(L)` to return the Hamiltonian matrix for a given L.
 
     Attributes
     ----------
@@ -33,7 +33,7 @@ class BaseModel(abc.ABC):
 
     Methods
     -------
-    _construct_H(L)
+    construct_H(L)
         Abstract method to build the Hamiltonian for a given L.
     get_eigenvalues(L, k_num=1)
         Compute the lowest k_num eigenvalues of H(L).
@@ -55,7 +55,7 @@ class BaseModel(abc.ABC):
         self._N = N
 
     @abc.abstractmethod
-    def _construct_H(self, L):
+    def construct_H(self, L):
         """
         Construct and return the Hamiltonian matrix for a given parameter L.
 
@@ -75,7 +75,7 @@ class BaseModel(abc.ABC):
         """
         pass
 
-    def get_eigenvectors(self, L, k_num=1):
+    def get_eigenvectors(self, L, k_num=1, v=False):
         """
         Compute the lowest k_num eigenvalues and eigenvectors of H(L).
 
@@ -85,6 +85,8 @@ class BaseModel(abc.ABC):
             Parameter (or list of parameters) controlling the Hamiltonian
         k_num : int, optional
             Number of lowest eigenpairs to compute. Default is 1.
+        v : bool, optional
+            If True, logs every time an eigenvalue is calculated. Default is False.
 
         Returns
         -------
@@ -106,14 +108,15 @@ class BaseModel(abc.ABC):
         """
         Ls = np.atleast_1d(L)
         eigenvalues = np.zeros((len(Ls), k_num), dtype=np.float64)
-        eigenvectors = np.zeros((len(Ls), k_num, self._construct_H(Ls[0]).shape[0]), dtype=np.complex128)
+        eigenvectors = np.zeros((len(Ls), k_num, self.construct_H(Ls[0]).shape[0]), dtype=np.complex128)
         for i, Li in enumerate(Ls):
-            H = self._construct_H(Li)
+            H = self.construct_H(Li)
             eigvals, eigvecs = ss.linalg.eigsh(H, k=k_num, which='SA')
             sort_indices = np.argsort(eigvals)
             eigenvalues[i] = eigvals[sort_indices][:k_num]
             eigenvectors[i] = eigvecs[:, sort_indices][:, :k_num].T
-            print(f"Finished calculating eigenvalues and eigenvectors for {Li}")
+            if v: 
+                print(f"Finished calculating eigenvalues and eigenvectors for {Li}")
         if np.isscalar(L):
             return eigenvalues[0], eigenvectors[0]
         return eigenvalues, eigenvectors

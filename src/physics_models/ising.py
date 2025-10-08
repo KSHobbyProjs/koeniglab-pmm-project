@@ -35,7 +35,7 @@ class Ising(base_model.BaseModel):
         return sigmas
 
     # construct the Ising Hamiltonian in 1D
-    def _construct_H(self, g):
+    def construct_H(self, g):
         sigmas = Ising._construct_Pauli_matrices(self._N)
         H1 = ss.csr_matrix((2**self._N, 2**self._N), dtype=np.complex128)
         H2 = ss.csr_matrix((2**self._N, 2**self._N), dtype=np.complex128)

@@ -5,7 +5,7 @@ class NoninteractingSpins(base_model.BaseModel):
     def __init__(self, N):
         super().__init__(N)
 
-    def _construct_H(self, c):
+    def construct_H(self, c):
         pauli_z = np.array([[1, 0], [0, -1]])
         pauli_x = np.array([[0, 1], [1, 0]])
         H = 0
