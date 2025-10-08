@@ -1,0 +1,64 @@
+#!/usr/bin/env python
+import pickle
+import matplotlib.pyplot as plt
+import numpy as np
+import physics_models as pm
+
+if __name__=="__main__":
+    gauss = pm.gaussian.Gaussian(N=32)
+    ising = pm.ising.Ising(N=4)
+    spins = pm.noninteracting_spins.NoninteractingSpins(N=4)
+
+    # get lowest two eigenvalues for each model over a range of values
+    Ls_gauss = np.linspace(5, 20, 50)
+    gauss_energies = gauss.get_eigenvalues(Ls_gauss, k_num=2)
+
+    gs_ising = np.linspace(0, 1.0, 50)
+    ising_energies = ising.get_eigenvalues(gs_ising, k_num=2)
+
+    cs_spins = np.linspace(-2.0, 2.0, 50)
+    spins_energies = spins.get_eigenvalues(cs_spins, k_num=2)
+
+    # store eigenvalues in a pickled data file
+    with open("../data/gauss_energies.pkl", "wb") as f:
+        gauss_dict = {"Ls" : Ls_gauss, 
+                      "energies" : gauss_energies
+                      }
+        pickle.dump(gauss_dict, f)
+
+    with open("../data/ising_energies.pkl", "wb") as f:
+        ising_dict = {"Ls" : gs_ising, 
+                      "energies" : ising_energies
+                      }
+        pickle.dump(ising_dict, f)
+
+    with open("../data/spins_energies.pkl", "wb") as f:
+        spins_dict = {"Ls" : cs_spins,
+                      "energies" : spins_energies
+                      }
+        pickle.dump(spins_dict, f)
+
+    # plot lowest eigenvalue for each model and store in data folder
+    fig, ax = plt.subplots()
+    ax.plot(Ls_gauss, gauss_energies[:,0], '-')
+    ax.set_xlabel(r"System Length")
+    ax.set_ylabel("Ground State Energy")
+    ax.set_title("(Gaussian) Ground State Energy vs System Volume")
+    plt.savefig("../data/gaussian_energies.png")
+    plt.show()
+
+    fig, ax = plt.subplots()
+    ax.plot(gs_ising, ising_energies[:,0], '-')
+    ax.set_xlabel(r"Transverse Field Strength")
+    ax.set_ylabel("Ground State Energy")
+    ax.set_title("(Ising) Ground State Energy vs Transverse Field Strength")
+    plt.savefig("../data/ising_energies.png")
+    plt.show()
+
+    fig, ax = plt.subplots()
+    ax.plot(cs_spins, spins_energies[:,0], '-')
+    ax.set_xlabel(r"x-Spin Strength")
+    ax.set_ylabel("Ground State Energy")
+    ax.set_title("(Non-interacting Spins) Ground State Energy vs x-Spin Strength")
+    plt.savefig("../data/spins_energies.png")
+    plt.show()
