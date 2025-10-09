@@ -27,7 +27,7 @@ if __name__=="__main__":
         Ls_train = 5 + np.linspace(0, 1, 8)**2 * (L_final - 5) 
         Es_train = gauss.get_eigenvalues(Ls_train)
         Es_train = gauss.get_eigenvalues(Ls_train)
-        Es_predict, _ = gauss_ec.solve_with_dilation(Ls_train, Ls_actual, k_num_sample=6)
+        Es_predict, _ = gauss_ec.solve(Ls_train, Ls_actual, k_num_sample=6, dilate=True)
 
         ax[i].plot(Ls_train, Es_train, 'o', label='training values')
         ax[i].plot(Ls_actual, Es_actual, '-', label='test energies')
