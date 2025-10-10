@@ -11,30 +11,33 @@ if __name__=="__main__":
 
     # get lowest two eigenvalues for each model over a range of values
     Ls_gauss = np.linspace(5, 20, 50)
-    gauss_energies = gauss.get_eigenvalues(Ls_gauss, k_num=2)
+    gauss_energies, gauss_states = gauss.get_eigenvectors(Ls_gauss, k_num=2)
 
     gs_ising = np.linspace(0, 1.0, 50)
-    ising_energies = ising.get_eigenvalues(gs_ising, k_num=2)
+    ising_energies, ising_states = ising.get_eigenvectors(gs_ising, k_num=2)
 
     cs_spins = np.linspace(-2.0, 2.0, 50)
-    spins_energies = spins.get_eigenvalues(cs_spins, k_num=2)
+    spins_energies, spins_states = spins.get_eigenvectors(cs_spins, k_num=2)
 
     # store eigenvalues in a pickled data file
     with open("../data/gauss_energies.pkl", "wb") as f:
         gauss_dict = {"Ls" : Ls_gauss, 
-                      "energies" : gauss_energies
+                      "energies" : gauss_energies,
+                      "eigenstates": gauss_states
                       }
         pickle.dump(gauss_dict, f)
 
     with open("../data/ising_energies.pkl", "wb") as f:
         ising_dict = {"Ls" : gs_ising, 
-                      "energies" : ising_energies
+                      "energies" : ising_energies,
+                      "eigenstates": ising_states
                       }
         pickle.dump(ising_dict, f)
 
     with open("../data/spins_energies.pkl", "wb") as f:
         spins_dict = {"Ls" : cs_spins,
-                      "energies" : spins_energies
+                      "energies" : spins_energies,
+                      "eigenstates": spins_states
                       }
         pickle.dump(spins_dict, f)
 

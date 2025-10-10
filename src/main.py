@@ -6,35 +6,67 @@ import matplotlib.pyplot as plt
 import pickle
 
 if __name__=="__main__":
-    gauss = pm.gaussian.Gaussian(N=32)
+    # load gaussian model and EC
+    N = 32
+    gauss = pm.gaussian.Gaussian(N)
     gauss_ec = ec.EC(gauss)
 
+    # import ground state energies and eigenvectors
     with open("../data/gauss_energies.pkl", "rb") as f:
         data = pickle.load(f)
 
     Ls_actual = data["Ls"]
     Es_actual = data["energies"][:,0]
+    states = data["eigenstates"][:,0,:]
+
+    """
+    # plot ground state eigenvector
+    L_index = 10
+    L = Ls_actual[L_index]
+    a_phys = L / N
+    psi = states[L_index]
+    psi2 = np.abs(psi)**2 / a_phys**3
     
-    Ls_final = np.arange(7, 15)
-    ncols = int(np.ceil(np.sqrt(len(Ls_final))))
-    nrows = int(np.ceil(len(Ls_final) / ncols))
-    fig, ax = plt.subplots(nrows, ncols, figsize=(4 * nrows, 3 * ncols))
-    plt.tight_layout(pad=2.0)
-    ax = ax.flatten()
-    for i, L_final in enumerate(Ls_final):
-        cutoff = len(Ls_final) - 1 - i
+    ys2d, xs2d = np.indices((N, N))
+    xs2d = (xs2d.flatten() - N / 2) * a_phys
+    ys2d = (ys2d.flatten() - N / 2) * a_phys
+    plt.scatter(xs2d, ys2d, c=psi2[:N**2]*a_phys, cmap='viridis')
+    plt.colorbar()
+    plt.show()
 
-        Ls_train = 5 + np.linspace(0, 1, 8)**2 * (L_final - 5) 
-        Es_train = gauss.get_eigenvalues(Ls_train)
-        Es_train = gauss.get_eigenvalues(Ls_train)
-        Es_predict, _ = gauss_ec.solve(Ls_train, Ls_actual, k_num_sample=6, dilate=True)
+    # dilate ground state eigenvector and plot
+    L_target = 10
+    a_phys = L_target / N
+    psi_dilated = ec.EC.dilate(L, L_target, psi)
+    psi_dilated2 = np.abs(psi_dilated)**2 / a_phys**3
 
-        ax[i].plot(Ls_train, Es_train, 'o', label='training values')
-        ax[i].plot(Ls_actual, Es_actual, '-', label='test energies')
-        ax[i].plot(Ls_actual, Es_predict, '--', label='prediction')
-        ax[i].set_xlabel('System Size L')
-        ax[i].set_ylabel('Ground State Energy E')
-        ax[i].set_title('Ground State Energy vs System Size')
-        ax[i].legend()
-    plt.savefig('../results/gaussian')
+    ys2d, xs2d = np.indices((N, N))
+    xs2d = (xs2d.flatten() - N / 2) * a_phys
+    ys2d = (ys2d.flatten() - N / 2) * a_phys 
+    plt.scatter(xs2d, ys2d, c=psi_dilated2[:N**2]*a_phys, cmap='viridis')
+    plt.colorbar()
+    plt.show()
+    """
+
+    # use EC to find predictions for ground state energies
+    Ls_train = np.arange(5, 13) 
+    Es_train = gauss.get_eigenvalues(Ls_train)
+    Es_predict, _ = gauss_ec.solve(Ls_train, Ls_actual, k_num_sample=6, k_num_predict=2, dilate=True)
+    
+    # find index
+    L_star = 20
+    temp = np.ones_like(Ls_actual) * L_star
+    error = abs(Ls_actual - temp)
+    i = np.argmin(error)
+    print(Ls_actual[i])
+    print(Es_predict[i])
+
+    fig, ax = plt.subplots()
+    ax.plot(Ls_train, Es_train, 'o', label='training values')
+    ax.plot(Ls_actual, Es_actual, '-', label='test energies')
+    ax.plot(Ls_actual, Es_predict, '--', label='prediction')
+    ax.set_xlabel('System Size L')
+    ax.set_ylabel('Ground State Energy E')
+    ax.set_title('Ground State Energy vs System Size')
+    ax.legend()
     plt.show() 

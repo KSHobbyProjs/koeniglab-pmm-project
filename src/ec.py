@@ -14,13 +14,15 @@ import numpy as np
 import scipy.sparse as ss
 import scipy.ndimage as sn
 
-class EC:
+class EC: 
+    _base_coods = {}
     def __init__(self, model):
         self._model = model
 
         self._sample_vectors = None
         self._sample_Ls = None
         self._S = None
+
 
     def sample(self, sample_Ls, k_num=1):
         """compute and store eigenvectors at sample points."""
@@ -69,6 +71,17 @@ class EC:
         self._sample_vectors = temp_vecs
         self._S = temp_S
         return eigenvalues, eigenvectors
+
+    @classmethod
+    def _get_base_coods(cls, N):
+        if N in cls._base_coods:
+            return cls._base_coods[N]
+
+        xs = (np.arange(N) - N / 2).astype(np.float64)
+        xs, ys, zs = np.meshgrid(xs, xs, xs, indexing='ij')
+        base_coods = np.stack([xs, ys, zs], axis=0)
+        cls._base_coods[N] = base_coods
+        return base_coods
    
     @staticmethod
     def get_dilated_basis(sample_Ls, sample_vectors, target_L):
@@ -79,14 +92,9 @@ class EC:
         if Ls_length != len(sample_Ls):
             raise RuntimeError("the first axis of sample_vectors needs to match the length of sample_Ls in `get_dilated_basis(sample_Ls, sample_vectors, target_L)`")
 
-        # create base_coods so they don't need to be created in the loop
-        xs = (np.arange(N) - N / 2).astype(np.float64)
-        xs, ys, zs = np.meshgrid(xs, xs, xs, indexing='ij')
-        base_coods = np.stack([xs, ys, zs], axis=0)
-        
         dilated_basis = np.empty_like(sample_vectors)
         for i, sample_L in enumerate(sample_Ls):
-            dilated_basis[i] = EC.dilate(sample_L, target_L, sample_vectors[i], base_coods=base_coods)
+            dilated_basis[i] = EC.dilate(sample_L, target_L, sample_vectors[i])
 
         # reflatten
         dilated_basis = dilated_basis.reshape(-1, dilated_basis.shape[2])
@@ -96,7 +104,7 @@ class EC:
     # dilate a state ket psi into a new volume & renormalize
     # given target volume Lprime, old volume L, and wavefunction psi
     @staticmethod
-    def dilate(L, L_target, psi, base_coods=None):
+    def dilate(L, L_target, psi):
         if psi.ndim == 1:
             psi = psi[None, :] # make it (1, N^3)
 
@@ -108,10 +116,7 @@ class EC:
         s = L / L_target
 
         # physical coordinates are dilated, not the indices, so create physical cood arrays
-        if base_coods is None:
-            xs = (np.arange(N) - N / 2).astype(np.float64)
-            xs, ys, zs = np.meshgrid(xs, xs, xs, indexing='ij')
-            base_coods = np.stack([xs, ys, zs], axis=0)
+        base_coods = EC._get_base_coods(N) 
 
         # dilate physical coods by L / L'
         dilated_coods = s * base_coods
