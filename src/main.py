@@ -4,6 +4,7 @@ import numpy as np
 import ec
 import matplotlib.pyplot as plt
 import pickle
+import pmm
 
 if __name__=="__main__":
     # load gaussian model and EC
@@ -18,6 +19,9 @@ if __name__=="__main__":
     Ls_actual = data["Ls"]
     Es_actual = data["energies"][:,0]
     states = data["eigenstates"][:,0,:]
+
+    pmm_gauss = pmm.PMM(gauss, 3)
+    print(pmm_gauss._temp())
 
     """
     # plot ground state eigenvector
@@ -47,11 +51,12 @@ if __name__=="__main__":
     plt.colorbar()
     plt.show()
     """
-
+    
+    """
     # use EC to find predictions for ground state energies
     Ls_train = np.arange(5, 13) 
     Es_train = gauss.get_eigenvalues(Ls_train)
-    Es_predict, _ = gauss_ec.solve(Ls_train, Ls_actual, k_num_sample=6, k_num_predict=2, dilate=False)
+    Es_predict, _ = gauss_ec.solve(Ls_train, Ls_actual, k_num_sample=6, k_num_predict=1, dilate=False)
     
     # find index
     L_star = 20
@@ -70,3 +75,5 @@ if __name__=="__main__":
     ax.set_title('Ground State Energy vs System Size')
     ax.legend()
     plt.show() 
+    """
+
