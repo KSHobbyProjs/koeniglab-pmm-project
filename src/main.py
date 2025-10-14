@@ -20,8 +20,8 @@ if __name__=="__main__":
     Es_actual = data["energies"][:,0]
     states = data["eigenstates"][:,0,:]
 
-    pmm_gauss = pmm.PMM(gauss, 3)
-    print(pmm_gauss._temp())
+    pmm_gauss = pmm.PMM(gauss, 2)
+    # print(pmm_gauss.temp())
 
     """
     # plot ground state eigenvector

@@ -28,14 +28,22 @@ class PMM:
         n = self._dim
         k1, k2, k3 = jax.random.split(key, 3)
 
+        # create a batch of diagonal and upper triangular parameters
         diags = mag * jax.random.normal(k1, shape=(num_matrices, n), dtype=jnp.float64)
         upper_real = mag * jax.random.normal(k2, shape=(num_matrices, n * (n - 1) // 2), dtype=jnp.float64)
         upper_imag = mag * jax.random.normal(k3, shape=(num_matrices, n * (n - 1) // 2), dtype=jnp.float64)
-        upper = upper_real + 1j * upper_imag
-        return {"diags" : diags, "uppers" : upper}
-                                        
-    def _construct_hermitian(self, diags, uppers):
-        n = self._dim
+        uppers = upper_real + 1j * upper_imag
+
+        # split parameters into primary matrix and secondary matrix parameters 
+        split_idx = self._num_primary
+        primary_diags, secondary_diags = diags[:split_idx], diags[split_idx:]
+        primary_uppers, secondary_uppers = uppers[:split_idx], uppers[split_idx:]
+        return {"primary_diags" : primary_diags, "primary_uppers" : primary_uppers,
+                "secondary_diags" : secondary_diags, "secondary_uppers" : secondary_uppers}
+    
+    @staticmethod
+    def construct_hermitian(diags, uppers):
+        n = diags.shape[1]
         i_off, j_off = jnp.triu_indices(n, k=1)
         # construct diagonal matrices across batch (same as diags[:, :, None] * jnp.eye(n)[None, :, :])
         diag_matrices = jnp.einsum('bi,ij->bij', diags, jnp.eye(n)).astype(jnp.complex128) 
@@ -44,7 +52,43 @@ class PMM:
         # add them together and force hermiticity
         H = upper_matrices + upper_matrices.conj().swapaxes(1, 2) - diag_matrices
         return H
-    
+
+    # get the k_num-lowest eigenvalues of M (or Ms if M is given as a batch of matrices)
+    @staticmethod
+    def get_eigenvalues(M, k_num):
+        # If M is a single matrix, make it (1, M)
+        if M.ndim == 2:
+            M = M[None, :, :]
+        
+        # compute eigenpairs
+        eigvals, eigvecs = jnp.linalg.eigh(M)
+
+        # sort eigenpairs
+        idx = jnp.argsort(eigvals, axis=1)
+        eigvals = jnp.take_along_axis(eigvals, idx, axis=1)
+        eigvecs = jnp.take_along_axis(eigvecs, idx[:, None, :], axis=2)
+
+        # take the lowest k_num eigenpairs and transpose eigvecs to (len(M), k_num, :)
+        eigvals = eigvals[:, :k_num]
+        eigvecs = eigvecs[:, :, :k_num].swapaxes(1, 2)
+
+        if eigvals.shape[0] == 1:
+            return eigvals[0], eigvecs[0]
+        return eigvals, eigvecs
+
+    def _M(self, gs):
+        gs = jnp.atleast_1d(gs)
+
+        # grab primary matrix parameters and construct H for each set
+        diags, uppers = self._params["primary_diags"], self._params["primary_uppers"]
+        Hs = PMM.construct_hermitian(diags, uppers)
+        
+        # construct M via power series (H_0 + g*H_1 + g^2*H_2 + ...) for total number of primary matrices
+        powers = jnp.arange(len(Hs))
+        weights = gs[None, :] ** powers[:, None]
+        M = jnp.einsum('bm,bij->mij', weights, Hs)
+        return M
+   
     def _loss(self):
         pass
 
@@ -64,7 +108,3 @@ class PMM:
         # step parameter
         parameter = parameter - eta * vt_hat / (jnp.sqrt(mt_hat) + eps)
         return parameter, vt, mt
-
-    def _M(As, Bs, cs):
-        pass
-
