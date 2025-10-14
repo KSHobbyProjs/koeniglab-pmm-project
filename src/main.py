@@ -51,7 +51,7 @@ if __name__=="__main__":
     # use EC to find predictions for ground state energies
     Ls_train = np.arange(5, 13) 
     Es_train = gauss.get_eigenvalues(Ls_train)
-    Es_predict, _ = gauss_ec.solve(Ls_train, Ls_actual, k_num_sample=6, k_num_predict=2, dilate=True)
+    Es_predict, _ = gauss_ec.solve(Ls_train, Ls_actual, k_num_sample=6, k_num_predict=2, dilate=False)
     
     # find index
     L_star = 20

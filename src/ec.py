@@ -1,13 +1,16 @@
 """
 ec.py
-Defines a class that handles eigenvector continuation predictions given a BaseModel subclass
 
-This module provides a 
+Defines a class for eigenvector continuation (EC) predictions built on a BaseModel.
+
+This module provides a reusable interface for eigenvector continuation computations where
+the Hamiltonian depends on an external parameter L. The EC class handles sampling, projecting, 
+dilating, and prediction of eigenvalues and eigenvectors.
 
 Classes
 -------
 EC
-    Class that handles eigenvector continuation computations for BaseModel subclasses
+    Class that performs eigenvector continuation for BaseModel subclasses.
 """
 
 import numpy as np
@@ -15,8 +18,42 @@ import scipy.sparse as ss
 import scipy.ndimage as sn
 
 class EC: 
+    """
+    Class for handling eigenvector continuation computations.
+
+    This class defines common methods to sample and predict eigenvalues and eigenvectors
+    for Hamiltonians H(L) acting on an N-site lattice.
+
+    Attributes 
+    ----------
+    _base_coods : dict
+        Dictionary storing lattice coordinates for different lattice sizes N.
+        Automatically populated upon calling `_get_base_coods()`.
+    _model : BaseModel
+        Model used for sampling (must subclass `BaseModel`).
+    _sample_vectors : ndarray
+        Sampled eigenvectors at various parameter values L.
+        Automatically populated upon calling `sample()`.
+    _sample_Ls : ndarray
+        Parameter values where the Hamiltonian H(L) is sampled.
+        Automatically populated upon calling `sample()`.
+    _S : ndarray
+        Overlap matrix between sample eigenvectors.
+        Automatically populated upon calling `sample()`.
+    """
+
     _base_coods = {}
+
     def __init__(self, model):
+        """
+        Initialize the eigenvector continuation setup with a specified model.
+
+        Parameters
+        ----------
+        model : BaseModel
+            Model used for sampling.
+        """
+
         self._model = model
 
         self._sample_vectors = None
@@ -25,7 +62,35 @@ class EC:
 
 
     def sample(self, sample_Ls, k_num=1):
-        """compute and store eigenvectors at sample points."""
+        """
+        Compute and store the lowest `k_num` eigenpairs of H(L) for each parameter L in `sample_Ls`.
+
+        Parameters
+        ----------
+        sample_Ls : float or array_like
+            Parameter (or list of parameters) to sample the Hamiltonian at.
+        k_num : int, optional
+            Number of lowest eigenpairs to compute. Default is 1.
+
+        Returns
+        -------
+        eigvecs : ndarray
+            Sampled eigenvectors, shape (len(sample_Ls) * k_num, n).
+
+        Notes
+        -------
+        This method populates the following attributes:
+        
+        - `self._sample_Ls` : ndarray
+            Array of sampled L values.
+        - `self._sample_vectors` : ndarray
+            Array of sampled eigenvectors, equal to `eigvecs`.
+        - `self._S` : ndarray
+            Overlap matrix between sampled eigenvectors, shape (m, m),
+            where m = len(eigvecs).
+        """
+
+        sample_Ls = np.atleast_1d(sample_Ls)
         _, eigvecs = self._model.get_eigenvectors(sample_Ls, k_num)
         eigvecs = eigvecs.reshape(-1, eigvecs.shape[2])
         self._sample_vectors = eigvecs
@@ -34,7 +99,36 @@ class EC:
         return eigvecs
 
     def ec_predict(self, target_Ls, k_num=1, dilate=False):
-        """predict eigenvalues at target points"""
+        """
+        Predict lowest `k_num` eigenpairs at each target L value in `target_Ls` using EC projection.
+
+        Parameters
+        ----------
+        target_Ls : float or array_like
+            Parameter (or list of parameters) to estimate eigenpairs at.
+        k_num : int, optional
+            Number of lowest eigenpairs to predict. Default is 1.
+        dilate : bool, optional
+            If True, dilates the sampled eigenvectors to match the target `target_Ls`
+            before computing the projected matrices. This option only makes sense when
+            the target L values correspond to a length or volume scale; it should be left as False for 
+            dimensionless coupling parameters. Default is False.
+
+        Returns
+        -------
+        eigenvalues : ndarray
+            Predicted eigenvalues at `target_Ls`.
+            Shape (k_num,) if `target_Ls` is scalar, otherwise (len(target_Ls), k_num).
+        eigenvectors : ndarray
+            Predicted eigenvectors at `target_Ls`.
+            Shape (k_num, n) if `target_Ls` is scalar, otherwise (len(target_Ls), k_num, n).
+
+        Raises
+        ------
+        RuntimeError
+            If `sample()` has not been called prior to prediction.
+        """
+
         if self._sample_vectors is None or self._S is None or self._sample_Ls is None:
             raise RuntimeError("No sampled vectors found. Run `sample()` first.")
         
@@ -61,7 +155,37 @@ class EC:
 
 
     def solve(self, sample_Ls, target_Ls, k_num_sample=1, k_num_predict=1, dilate=False):
-        """ wrapper for sampling and predicting"""
+        """
+        Wrapper for sampling and predicting eigenpairs at target L values.
+
+        This method calls `sample()` to compute the basis at `sample_Ls` and then calls
+        `ec_predict()` to estimate eigenpairs at `target_Ls`. The attributes of the class
+        are not updated after this method returns.
+        
+        Parameters
+        ----------
+        sample_Ls : float or array_like
+            L values at which to sample the Hamiltonian.
+        target_Ls : float or array_like
+            L values at which to predict eigenpairs.
+        k_num_sample : int, optional
+            Number of lowest eigenpairs to sample. Default is 1.
+        k_num_predict : int, optional
+            Number of lowest eigenpairs to predict. Default is 1. 
+        dilate : bool, optional
+            If True, dilates the sampled eigenvectors to match the target `target_Ls`
+            before computing the projected matrices. This option only makes sense when
+            the target L values correspond to a length or volume scale; it should be left as False for 
+            dimensionless coupling parameters. Default is False.
+
+        Returns
+        -------
+        eigenvalues : ndarray
+            Predicted eigenvalues at `target_Ls`, exactly as returned by `ec_predict()`.
+        eigenvectors : ndarray
+            Predicted eigenvectors, exactly as returned by `ec_predict()`.
+        """
+
         temp_vecs = self._sample_vectors
         temp_S = self._S
 
@@ -74,6 +198,25 @@ class EC:
 
     @classmethod
     def _get_base_coods(cls, N):
+        """
+        Compute, store, and return the lattice coordinates for a given lattice size.
+
+        Parameters
+        ----------
+        N : int
+            Number of lattice points along each dimension.
+
+        Returns
+        -------
+        base_coods : ndarray 
+            Meshgrid of lattice coordinates with shape (3, N, N, N).
+
+        Notes
+        -------
+        Automatically populates the class attribute `_base_coods` for the given N. 
+
+        """
+
         if N in cls._base_coods:
             return cls._base_coods[N]
 
@@ -85,7 +228,36 @@ class EC:
    
     @staticmethod
     def get_dilated_basis(sample_Ls, sample_vectors, target_L):
-        """predict eigenvalues at target points"""
+        """
+        Dilate a set of sampled eigenvectors to a target system size.
+
+        This method rescales the sampled eigenvectors to the target L value `target_L`
+        (physical length or volume scale) and computes their overlap matrix.
+
+        Parameters
+        ----------
+        sample_Ls : float or array_like
+            L values at which the eigenvectors were originally sampled.
+        sample_vectors : ndarray
+            Sample eigenvectors, shape (len(sample_Ls), k_num, n), where k_num is the number of 
+            eigenpairs sampled per L and n is the Hamiltonian dimension.
+        target_L : float
+            Target L value to which the eigenvectors are dilated.
+
+        Returns 
+        -------
+        dilated_basis : ndarray
+            Dilated eigenvectors, shape (len(sample_Ls) * k_num, n).
+        S : ndarray
+            Overlap matrix of the dilated basis, shape (m, m) where m=len(sample_Ls).
+
+        Notes
+        -------
+        Calls `dilate()`, which in turn calls `_get_base_coods()`. The class attribute `_base_coods`
+        is updated automatically.
+        """
+
+        sample_Ls = np.atleast_1d(sample_Ls)
         Ls_length, k_num, N3 = sample_vectors.shape
         N = round(N3**(1/3))
 
@@ -105,6 +277,31 @@ class EC:
     # given target volume Lprime, old volume L, and wavefunction psi
     @staticmethod
     def dilate(L, L_target, psi):
+        """ 
+        Dilate a wavefunction / eigenvector from one system size to another.
+        
+        The wavefunction `psi` is interpolated to the target volume `L_target` and renormalized.
+        Only physically meaningful when L represents a length or volume scale.
+
+        Parameters
+        ----------
+        L : float
+            Original system size of `psi`.
+        L_target : float
+            Target system size for interpolation.
+        psi : ndarray
+            Eigenvector(s) at system size `L`. Shape (n,) for one vector or (k_num, n) for k_num vectors.
+
+        Returns
+        -------
+        psi_dilated : ndarray
+            Wavefunction(s) dilated to `L_target`. Shape matches input: (n,) or (k_num, n).
+
+        Notes
+        -------
+        Calls `_get_base_coods()`, updating `_base_coods` if necessary.
+        """
+
         if psi.ndim == 1:
             psi = psi[None, :] # make it (1, N^3)
 
