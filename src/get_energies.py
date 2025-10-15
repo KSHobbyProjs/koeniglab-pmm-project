@@ -22,7 +22,7 @@ if __name__=="__main__":
     Ls_gauss = np.linspace(5, 20, 50)
     gauss_energies, gauss_states = gauss.get_eigenvectors(Ls_gauss, k_num=4)
     
-    gauss1d_energies, gauss1d_states = gauss1d.get_eigenvectors(Ls_gauss, k_num=4)
+    gauss1d_energies, gauss1d_states = gauss1d.get_eigenvectors(Ls_gauss, k_num=10)
 
     gs_ising = np.linspace(0, 1.0, 50)
     ising_energies, ising_states = ising.get_eigenvectors(gs_ising, k_num=4)
