@@ -7,21 +7,42 @@ import pickle
 import pmm
 
 if __name__=="__main__":
-    # load gaussian model and EC
+    # load Gaussian model
     N = 32
     gauss = pm.gaussian.Gaussian(N)
-    gauss_ec = ec.EC(gauss)
 
     # import ground state energies and eigenvectors
     with open("../data/gauss_energies.pkl", "rb") as f:
         data = pickle.load(f)
 
-    Ls_actual = data["Ls"]
+    gs_actual = data["Ls"]
     Es_actual = data["energies"][:,0]
-    states = data["eigenstates"][:,0,:]
 
-    pmm_gauss = pmm.PMM(gauss, 2)
-    # print(pmm_gauss.temp())
+    gs_sample = 5 + np.linspace(0, 1, 20)**1.5 * (20 - 5)
+    Es_sample = gauss.get_eigenvalues(gs_sample, k_num=1)
+   # with open("../data/gauss_sample_energies.pkl", "wb") as f:
+        #pickle.dump({"Ls" : gs_sample, "energies" : Es_sample}, f)
+    
+    epochs = 15000
+    store_loss = 100
+    dim = 5
+    pmm_gauss = pmm.PMM(dim=dim)
+    pmm_gauss.sample(file="../data/gauss_sample_energies.pkl")
+    #pmm_gauss.load("../data/gauss_state.pkl")
+    _, loss = pmm_gauss.train(epochs=epochs, store_loss=store_loss) 
+    pmm_gauss.store(path="../data/gauss_state.pkl")
+    Es_predict = pmm_gauss.predict(gs_actual)
+
+    fig, ax = plt.subplots()
+    ax.plot(store_loss * np.arange(len(loss)), np.log10(loss), '-')
+    print(loss[-1])
+    plt.show()
+    
+    fig, ax = plt.subplots()
+    ax.plot(gs_actual, Es_actual, '-')
+    ax.plot(gs_sample, Es_sample, 'o')
+    ax.plot(gs_actual, Es_predict, '--')
+    plt.show()
 
     """
     # plot ground state eigenvector
