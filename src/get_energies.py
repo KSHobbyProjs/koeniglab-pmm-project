@@ -14,15 +14,18 @@ if __name__=="__main__":
     # os.makedirs(PLOT_DIR, exist_ok=True)
 
     gauss = pm.gaussian.Gaussian(N=32)
+    gauss1d = pm.gaussian_1d.Gaussian1d(N=128)
     ising = pm.ising.Ising(N=4)
     spins = pm.noninteracting_spins.NoninteractingSpins(N=4)
 
     # get lowest two eigenvalues for each model over a range of values
     Ls_gauss = np.linspace(5, 20, 50)
-    gauss_energies, gauss_states = gauss.get_eigenvectors(Ls_gauss, k_num=2)
+    gauss_energies, gauss_states = gauss.get_eigenvectors(Ls_gauss, k_num=4)
+    
+    gauss1d_energies, gauss1d_states = gauss1d.get_eigenvectors(Ls_gauss, k_num=4)
 
     gs_ising = np.linspace(0, 1.0, 50)
-    ising_energies, ising_states = ising.get_eigenvectors(gs_ising, k_num=2)
+    ising_energies, ising_states = ising.get_eigenvectors(gs_ising, k_num=4)
 
     cs_spins = np.linspace(-2.0, 2.0, 50)
     spins_energies, spins_states = spins.get_eigenvectors(cs_spins, k_num=2)
@@ -35,6 +38,14 @@ if __name__=="__main__":
                       "eigenstates": gauss_states
                       }
         pickle.dump(gauss_dict, f)
+
+    path = os.path.join(DATA_DIR, "gauss1d_energies.pkl")
+    with open(path, "wb") as f:
+        gauss1d_dict = {"Ls" : Ls_gauss,
+                        "energies" : gauss1d_energies,
+                        "eigenstates" : gauss1d_states
+                        }
+        pickle.dump(gauss1d_dict, f)
     
     path = os.path.join(DATA_DIR, "ising_energies.pkl")
     with open(path, "wb") as f:
@@ -59,6 +70,15 @@ if __name__=="__main__":
     ax.set_xlabel(r"System Length")
     ax.set_ylabel("Ground State Energy")
     ax.set_title("(Gaussian) Ground State Energy vs System Volume")
+    plt.savefig(path)
+    plt.show()
+
+    path = os.path.join(DATA_DIR, "plots/gaussian1d_energies.png")
+    fig, ax = plt.subplots()
+    ax.plot(Ls_gauss, gauss1d_energies[:,0], '-')
+    ax.set_xlabel(r"System length")
+    ax.set_ylabel(r"Ground State Energy")
+    ax.set_title("(Gaussian 1d) Ground State Energy vs System Volume")
     plt.savefig(path)
     plt.show()
 
