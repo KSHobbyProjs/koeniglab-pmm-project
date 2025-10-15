@@ -27,7 +27,7 @@ if __name__=="__main__":
     idx = 49
     fig, ax = plt.subplots()
     #ax.plot(phys_coods[idx], potentials[idx])
-    ax.plot(phys_coods[idx], np.abs(states[idx].T)**2)
+    ax.plot(phys_coods[idx], states[idx].T)
     ax.set_xlabel("Distance")
     ax.set_ylabel("Potential and Prob")
     ax.set_title(f"States at L: {Ls[idx]}")
