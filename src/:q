@@ -7,69 +7,47 @@ import pickle
 import pmm
 
 if __name__=="__main__":
-    
-    # load ising model
-    """
-    N = 4
-    ising = pm.ising.Ising(N)
-    
-    with open("../data/ising_energies.pkl", "rb") as f:
-        data = pickle.load(f)
-
-    gs_actual = data["Ls"]
-    Es_actual = data["energies"]
-
-    k_num = 3
-    gs_sample = np.linspace(0, .5, 10)
-    Es_sample = ising.get_eigenvalues(gs_sample, k_num=k_num)
-    """    
-    
-    # ----------------------------------------------- Load Gaussian1d Model ---------------------------
+    # load Gaussian model
     N = 128
-    V0, R = 4.0, 2.0
-    gauss = pm.gaussian_1d.Gaussian1d(N, V0=V0, R=R)
+    gauss = pm.gaussian_1d.Gaussian1d(N)
 
     # import ground state energies and eigenvectors
-    with open("../data/gauss1d_V0_4_R_2.pkl", "rb") as f:
+    with open("../data/gauss1d_energies.pkl", "rb") as f:
         data = pickle.load(f)
 
     gs_actual = data["Ls"]
     Es_actual = data["energies"]
     
     # get sampling data
-    k_num = 3
-    gs_sample = 5 + np.linspace(0, 1, 20)**1.5 * (10 - 5)
+    k_num = 2
+    gs_sample = 5 + np.linspace(0, 1, 20)**1.5 * (20 - 5)
     Es_sample = gauss.get_eigenvalues(gs_sample, k_num=k_num)
-    # --------------------------------------------------------------------------------------------------
 
-    # normalize gs_sample, Es_sample to be b/w -1 and 1 (TEST)
-    gmin, gmax = np.min(gs_sample), np.max(gs_sample)
-    Emin, Emax = np.min(Es_sample), np.max(Es_sample)
-    gs_sample = 2 * (gs_sample - gmin) / (gmax - gmin) - 1
-    Es_sample = 2 * (Es_sample - Emin) / (Emax - Emin) - 1
-
+    # normalize Es_sample (TEST)
+    Es_sample_mean0 = np.mean(Es_sample[:,0])
+    Es_sample_std0 = np.std(Es_sample[:,0])
+    Es_sample_mean1 = np.mean(Es_sample[:,1])
+    Es_sample_std1 = np.mean(Es_sample[:,1])
+    Es_train0 = (Es_sample[:,0] - Es_sample_mean0) / Es_sample_std0
+    Es_train1 = (Es_sample[:,1] - Es_sample_mean1) / Es_sample_std1
+    Es_train = np.stack((Es_train0, Es_train1), axis=1)
+      
     # define pmm
     epochs = 25000
     store_loss = 100
-    dim = 8
-    pmm_gauss = pmm.PMM(dim=dim,num_primary=3, eta=1e-2, l2=0.0, mag=.5e-1, seed=153)
+    dim = 10
+    pmm_gauss = pmm.PMM(dim=dim,num_primary=2, eta=1e-2, l2=0.0, mag=1e-1, seed=153)
     # input sampling data
-    pmm_gauss.sample(gs=gs_sample, Es=Es_sample)
+    pmm_gauss.sample(gs=gs_sample, Es=Es_train)
     # train pmm and grab loss
     params, loss = pmm_gauss.train(epochs=epochs, store_loss=store_loss)
     pmm_gauss.store(path="../data/gauss_state.pkl")
     # predict using trained pmm
-    gs_actual = 2 * (gs_actual - gmin) / (gmax - gmin) - 1 # normalize prediction gs to pass to model
     Es_predict = pmm_gauss.predict(gs_actual, k_num=k_num)
-    # de-normalize sample and prediction data
-    gs_sample = (gs_sample + 1) * (gmax - gmin) / 2 + gmin
-    Es_sample = (Es_sample + 1) * (Emax - Emin) / 2 + Emin
-    gs_actual = (gs_actual + 1) * (gmax - gmin) / 2 + gmin
-    Es_predict = (Es_predict + 1) * (Emax - Emin) / 2 + Emin
-    
-    # predict function flattens if k_num=1, unflatten for plotting purposes
-    if Es_predict.ndim == 1:
-        Es_predict = Es_predict[:, None]
+    Es_predict0 = Es_predict[:,0] * Es_sample_std0 + Es_sample_mean0
+    Es_predict1 = Es_predict[:,1] * Es_sample_std1 + Es_sample_mean1
+    Es_predict = np.stack((Es_predict0, Es_predict1), axis=1)
+    #Es_predict = Es_predict * Es_sample_std + Es_sample_mean # re-normalize
 
     # plot and print loss 
     print(loss[-1])
@@ -90,17 +68,6 @@ if __name__=="__main__":
         ax.set_ylabel("Energy")
         ax.set_title(f"Energy vs System Size: k:{k}")
         ax.legend()
-    plt.show()
-
-    # plot percent error
-    fig, ax = plt.subplots()
-    for k in range(k_num):
-        pe = np.abs((Es_actual[:,k] - Es_predict[:,k]) / Es_actual[:,k])
-        ax.plot(gs_actual, pe, label=f"{k} state")
-    ax.set_xlabel("System Length")
-    ax.set_ylabel("% Error")
-    ax.set_title("% Error vs System Length")
-    ax.legend()
     plt.show()
 
     """

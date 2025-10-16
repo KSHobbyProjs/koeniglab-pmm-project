@@ -12,9 +12,9 @@ if __name__=="__main__":
     # Es : shape (len(Ls), k_num)
     # states : shape (len(Ls), k_num, n)
     N, V0, R = 128, -4.0, 2.0
-    Ls = data["Ls"]
-    Es = data["energies"]
-    states = data["eigenstates"]
+    Ls = data["gs"]
+    Es = data["Es"]
+    states = data["states"]
 
     # phys_coods : shape (len(Ls), N)
     # potentials : shape (len(Ls), N)

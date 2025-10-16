@@ -69,7 +69,7 @@ class PMM:
         elif file is not None:
             with open(file, 'rb') as f:
                 data = pickle.load(f)
-            gs, Es = data["Ls"], data["energies"]
+            gs, Es = data["gs"], data["Es"]
         else:
             raise ValueError("Either (gs, Es) must be given or file must be provided.")
        
@@ -251,7 +251,7 @@ class PMM:
         
         # construct M via power series (H_0 + g*H_1 + g^2*H_2 + ...) for total number of primary matrices
         powers = jnp.arange(len(Hs))
-        weights = gs[None, :] ** powers[:, None]
+        weights = (gs[None, :] ** powers[:, None])
         M = jnp.einsum('bm,bij->mij', weights, Hs)
         return M
    

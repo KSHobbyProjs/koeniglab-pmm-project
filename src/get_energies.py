@@ -13,13 +13,16 @@ if __name__=="__main__":
     DATA_DIR = os.path.join(MODULE_DIR, "../data")
     # os.makedirs(PLOT_DIR, exist_ok=True)
 
-    gauss = pm.gaussian.Gaussian(N=32)
-    gauss1d = pm.gaussian_1d.Gaussian1d(N=128)
+    def get_data(model): 
+        pass
+    gauss3d_N_32_V_-4_R_2 = pm.gaussian.Gaussian(N=32)
+    gauss1d_N_128_V_-4_R_2 = pm.gaussian_1d.Gaussian1d(N=128)
+    gauss1d_N_128_V_4_R_2 = pm.gaussian_1d.Gaussian1d(N=128, V0=4.0, R=2.0)
     ising = pm.ising.Ising(N=4)
     spins = pm.noninteracting_spins.NoninteractingSpins(N=4)
 
     # get lowest two eigenvalues for each model over a range of values
-    Ls_gauss = np.linspace(5, 20, 50)
+    Ls_gauss = np.linspace(5, 20, 100)
     gauss_energies, gauss_states = gauss.get_eigenvectors(Ls_gauss, k_num=4)
     
     gauss1d_energies, gauss1d_states = gauss1d.get_eigenvectors(Ls_gauss, k_num=10)
@@ -31,6 +34,16 @@ if __name__=="__main__":
     spins_energies, spins_states = spins.get_eigenvectors(cs_spins, k_num=2)
 
     # store eigenvalues in a pickled data file
+    def save_data(path, Ls, Es, states):
+        with open(path, "wb") as f:
+            state_dict = {"Ls" : Ls,
+                          "Es" : Es,
+                          "states" : states
+                          }
+            pickle.dump(state_dict, f)
+
+
+
     path = os.path.join(DATA_DIR, "gauss_energies.pkl")
     with open(path, "wb") as f:
         gauss_dict = {"Ls" : Ls_gauss, 
