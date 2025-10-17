@@ -154,7 +154,7 @@ class EC:
         return eigenvalues, eigenvectors
 
 
-    def solve(self, sample_Ls, target_Ls, k_num_sample=1, k_num_predict=1, dilate=False):
+    def run_ec(self, sample_Ls, target_Ls, k_num_sample=1, k_num_predict=1, dilate=False):
         """
         Wrapper for sampling and predicting eigenpairs at target L values.
 

@@ -53,28 +53,16 @@ class PMM:
                 "secondary_diags" : secondary_diags, "secondary_uppers" : secondary_uppers}
    
     # ------------------------------------------ Sampling ------------------------------------------------------
-    def sample(self, file=None, gs=None, Es=None):
-        """
-        if file given, assumes data given in dictionary format: 
-        data['Ls'] = shape = (len(Ls),)
-        data['Es'] = shape = (len(Ls), k_num)
-        """
-        if gs is not None and Es is not None:
-            gs = jnp.atleast_1d(gs)
-            Es = jnp.atleast_1d(Es)
-            if gs.shape[0] != Es.shape[0]:
-                raise RuntimeError("Sample parameters (`gs`) and sample eigenvalues (`Es`) need to have the same length in `sample(file, gs, Es)`") 
-            if Es.ndim == 1:
-                Es = Es[:, None]
-        elif file is not None:
-            with open(file, 'rb') as f:
-                data = pickle.load(f)
-            gs, Es = data["gs"], data["Es"]
-        else:
-            raise ValueError("Either (gs, Es) must be given or file must be provided.")
+    def sample(self, Ls, Es):
+        Ls = jnp.atleast_1d(Ls)
+        Es = jnp.atleast_1d(Es)
+        if Ls.shape[0] != Es.shape[0]:
+            raise RuntimeError("Sample parameters (`Ls`) and sample eigenvalues (`Es`) need to have the same length in `sample(file, Ls, Es)`") 
+        if Es.ndim == 1:
+            Es = Es[:, None]
        
-        self._data["gs"], self._data["Es"] = gs, Es
-        return gs, Es
+        self._data["Ls"], self._data["energies"] = Ls, Es
+        return Ls, Es
 
     # -------------------------------------------- Training ----------------------------------------------------
     def train(self, epochs, store_loss=100):
@@ -84,7 +72,7 @@ class PMM:
         # construct vt and mt moments (tree.map allows us to move over the whole dictionary at once)
         params = self._params
         vt, mt = self._vt, self._mt
-        gs, Es = self._data["gs"], self._data["Es"]
+        Ls, Es = self._data["Ls"], self._data["energies"]
 
         # create array to store loss at epoch t
         losses = np.zeros(epochs // store_loss)
@@ -97,8 +85,8 @@ class PMM:
             # calculate the gradient (automatically applies through leafs (dictionary keys))
             # update the parameters with jax.tree.map (automatically aligns and moves through
             # dictionary keys so the whole dictionary can be moved through at once)
-            gt = grad_loss(params, gs, Es, self._l2)
-            update = jax.tree.map(lambda p, v, m, g: PMM.adam_update(p, v, m, t, g, 
+            gt = grad_loss(params, Ls, Es, self._l2)
+            update = jax.tree.map(lambda p, v, m, g: PMM._adam_update(p, v, m, t, g, 
                                                                              self._eta, self._beta1, self._beta2,
                                                                              self._eps, self._absmaxgrad),
                                           params, vt, mt, gt
@@ -114,7 +102,7 @@ class PMM:
 
             # store loss
             if t % store_loss == 0:
-                losses_at_t = jit_loss(params, gs, Es, self._l2)
+                losses_at_t = jit_loss(params, Ls, Es, self._l2)
                 losses[t // store_loss] = losses_at_t
         
         self._losses.append(losses)
@@ -122,13 +110,18 @@ class PMM:
         return params, losses 
 
     # -------------------------------------------- Prediction -------------------------------------------------
-    def predict(self, gs_predict, k_num=1):
-        Ms = PMM._M(self._params, gs_predict)
-        eigvals, _ = PMM.get_eigenvalues(Ms, k_num)
+    def predict(self, Ls_predict, k_num=1):
+        Ms = PMM._M(self._params, Ls_predict)
+        eigvals, _ = PMM._get_eigenvalues(Ms, k_num)
 
         if k_num == 1: 
             return eigvals[:, 0]
         return eigvals
+
+    # add function here that wraps all pmm mechanics: sampling, training, predicting, saving, and loading
+    # keep saving and loading separate in a pipeline code (like if load: PMM.load, etc.)
+    def run_pmm(self, sample_Ls, Es, target_Ls, k_num):
+        raise NotImplementedError
 
     # ------------------------------------------- Saving / Loading State ---------------------------------------
     def store(self, path):
@@ -181,14 +174,14 @@ class PMM:
     # loss function
     # mean squared error of the predicted eigenvalues to the true eigenvalues
     @staticmethod
-    def _loss(params, gs, Es, l2):
+    def _loss(params, Ls, Es, l2):
         """
-        gs : jndarray of shape (len(gs),)
+        Ls : jndarray of shape (len(Ls),)
         Es : jndarray of shape (len(Es),k_num)
         """
         k_num = Es.shape[1]
-        Ms = PMM._M(params, gs)
-        eigvals, _ = PMM.get_eigenvalues(Ms, k_num)
+        Ms = PMM._M(params, Ls)
+        eigvals, _ = PMM._get_eigenvalues(Ms, k_num)
         loss = jnp.mean(jnp.abs(eigvals - Es)**2)
 
         # use params['secondary_diags'], etc. to add secondary-matrix behavior to loss
@@ -200,7 +193,7 @@ class PMM:
     
     # -------------------------------------------- Utility Methods --------------------------------------------
     @staticmethod
-    def construct_hermitian(diags, uppers):
+    def _construct_hermitian(diags, uppers):
         n = diags.shape[1]
         i_off, j_off = jnp.triu_indices(n, k=1)
         # construct diagonal matrices across batch (same as diags[:, :, None] * jnp.eye(n)[None, :, :])
@@ -213,7 +206,7 @@ class PMM:
 
     # get the k_num-lowest eigenvalues of M (or Ms if M is given as a batch of matrices)
     @staticmethod
-    def get_eigenvalues(M, k_num):
+    def _get_eigenvalues(M, k_num):
         """
         Returns
         -------
@@ -242,23 +235,23 @@ class PMM:
         return eigvals, eigvecs
 
     @staticmethod
-    def _M(params, gs):
-        gs = jnp.atleast_1d(gs)
+    def _M(params, Ls):
+        Ls = jnp.atleast_1d(Ls)
 
         # grab primary matrix parameters and construct H for each set
         diags, uppers = params["primary_diags"], params["primary_uppers"]
-        Hs = PMM.construct_hermitian(diags, uppers)
+        Hs = PMM._construct_hermitian(diags, uppers)
         
         # construct M via power series (H_0 + g*H_1 + g^2*H_2 + ...) for total number of primary matrices
         powers = jnp.arange(len(Hs))
-        weights = (gs[None, :] ** powers[:, None])
+        weights = (Ls[None, :] ** powers[:, None])
         M = jnp.einsum('bm,bij->mij', weights, Hs)
         return M
    
        
     # define general Adam-update for complex parameters and real-loss functions
     @staticmethod
-    def adam_update(parameter, vt, mt, t, grad, eta=1e-2, beta1=0.9, beta2=0.999, eps=1e-8, absmaxgrad=1e3):
+    def _adam_update(parameter, vt, mt, t, grad, eta=1e-2, beta1=0.9, beta2=0.999, eps=1e-8, absmaxgrad=1e3):
         # conjugate the gradient and cap it with absmaxgrad
         gt = jnp.clip(grad.real, -absmaxgrad, absmaxgrad) - 1j * jnp.clip(grad.imag, -absmaxgrad, absmaxgrad)
         # compute the moments (momentum and normalizing) step parameters
