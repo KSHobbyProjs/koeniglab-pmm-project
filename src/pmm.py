@@ -10,13 +10,17 @@ class PMM:
     def __init__(self, dim, num_primary=2, num_secondary=0,
                  eta=.2e-2, beta1=0.9, beta2=0.999, eps=1e-8, absmaxgrad=1e3,
                  l2=0.0, mag=0.5e-1, seed=0):
+
+        # raise error if user attempts to train less than two primary matrices
+        if num_primary < 2: 
+            raise ValueError(f"Parametric matrix models require at least two primary matrices, got {num_primary}")
        
         # PMM state
         self._dim = dim
         self._num_primary = num_primary
         self._num_secondary = num_secondary
         
-        self._data = {}
+        self._sample_data = {}
         self._losses = []
 
         # ADAM state
@@ -53,39 +57,39 @@ class PMM:
                 "secondary_diags" : secondary_diags, "secondary_uppers" : secondary_uppers}
    
     # ------------------------------------------ Sampling ------------------------------------------------------
-    def sample(self, Ls, Es):
+    def sample_energies(self, Ls, energies):
         Ls = jnp.atleast_1d(Ls)
-        Es = jnp.atleast_1d(Es)
-        if Ls.shape[0] != Es.shape[0]:
-            raise RuntimeError("Sample parameters (`Ls`) and sample eigenvalues (`Es`) need to have the same length in `sample(file, Ls, Es)`") 
-        if Es.ndim == 1:
-            Es = Es[:, None]
+        energies = jnp.atleast_1d(energies)
+        if Ls.shape[0] != energies.shape[0]:
+            raise RuntimeError("Sample parameters (`Ls`) and sample eigenvalues (`energies`) need to have the same length in `sample(Ls, energies)`") 
+        if energies.ndim == 1:
+            energies = energies[:, None]
        
-        self._data["Ls"], self._data["energies"] = Ls, Es
-        return Ls, Es
+        self._sample_data["Ls"], self._sample_data["energies"] = Ls, energies
+        return Ls, energies
 
     # -------------------------------------------- Training ----------------------------------------------------
-    def train(self, epochs, store_loss=100):
-        if not self._data:
-            raise RuntimeError("No data loaded. Run `sample()` or `load()` before `train()`.")
+    def train_pmm(self, epochs, store_loss=100):
+        if not self._sample_data:
+            raise RuntimeError("No data loaded. Run `sample_energies()` or `load()` before `train_pmm()`.")
 
         # construct vt and mt moments (tree.map allows us to move over the whole dictionary at once)
         params = self._params
         vt, mt = self._vt, self._mt
-        Ls, Es = self._data["Ls"], self._data["energies"]
+        Ls, energies = self._sample_data["Ls"], self._sample_data["energies"]
 
         # create array to store loss at epoch t
         losses = np.zeros(epochs // store_loss)
 
         # jit the loss function so that it's significantly quicker to call
-        jit_loss = jax.jit(self._loss)
+        jit_loss = jax.jit(PMM.loss)
         grad_loss = jax.jit(jax.grad(jit_loss))
 
         for t in range(epochs):
             # calculate the gradient (automatically applies through leafs (dictionary keys))
             # update the parameters with jax.tree.map (automatically aligns and moves through
             # dictionary keys so the whole dictionary can be moved through at once)
-            gt = grad_loss(params, Ls, Es, self._l2)
+            gt = grad_loss(params, Ls, energies, self._l2)
             update = jax.tree.map(lambda p, v, m, g: PMM._adam_update(p, v, m, t, g, 
                                                                              self._eta, self._beta1, self._beta2,
                                                                              self._eps, self._absmaxgrad),
@@ -102,32 +106,31 @@ class PMM:
 
             # store loss
             if t % store_loss == 0:
-                losses_at_t = jit_loss(params, Ls, Es, self._l2)
+                losses_at_t = jit_loss(params, Ls, energies, self._l2)
                 losses[t // store_loss] = losses_at_t
         
         self._losses.append(losses)
         self._params = params
+        self._vt, self._mt = vt, mt
         return params, losses 
 
     # -------------------------------------------- Prediction -------------------------------------------------
-    def predict(self, Ls_predict, k_num=1):
+    def predict_energies(self, Ls_predict, k_num=1):
+        Ls_predict = jnp.atleast_1d(Ls_predict)
         Ms = PMM._M(self._params, Ls_predict)
         eigvals, _ = PMM._get_eigenvalues(Ms, k_num)
-
-        if k_num == 1: 
-            return eigvals[:, 0]
         return eigvals
 
     # add function here that wraps all pmm mechanics: sampling, training, predicting, saving, and loading
     # keep saving and loading separate in a pipeline code (like if load: PMM.load, etc.)
-    def run_pmm(self, sample_Ls, Es, target_Ls, k_num):
+    def run_pmm(self, sample_Ls, energies, target_Ls, k_num):
         raise NotImplementedError
 
     # ------------------------------------------- Saving / Loading State ---------------------------------------
-    def store(self, path):
+    def store_state(self, path):
         state = {
                 # training info
-                "data" : self._data,
+                "data" : self._sample_data,
                 "losses" : self._losses,
                 "params" : self._params,
                 "vt" : self._vt,
@@ -146,13 +149,12 @@ class PMM:
                 }
         with open(path, "wb") as f:
             pickle.dump(state, f)
-        return 0
 
-    def load(self, path):
+    def load_state(self, path):
         with open(path, "rb") as f:
             state = pickle.load(f)
         # training info
-        self._data = state["data"]
+        self._sample_data = state["data"]
         self._losses = state["losses"]
         self._params = state["params"]
         self._vt = state["vt"]
@@ -168,21 +170,20 @@ class PMM:
         self._dim = state["dim"]
         self._num_primary = state["num_primary"]
         self._num_secondary = state["num_secondary"]
-        return 0
 
-    # ------------------------------------------- Loss ------------------------------------------------------
+    # ------------------------------------------- Loss and Basis for M ---------------------------------------
     # loss function
     # mean squared error of the predicted eigenvalues to the true eigenvalues
     @staticmethod
-    def _loss(params, Ls, Es, l2):
+    def loss(params, Ls, energies, l2):
         """
         Ls : jndarray of shape (len(Ls),)
-        Es : jndarray of shape (len(Es),k_num)
+        energies : jndarray of shape (len(energies),k_num)
         """
-        k_num = Es.shape[1]
+        k_num = energies.shape[1]
         Ms = PMM._M(params, Ls)
         eigvals, _ = PMM._get_eigenvalues(Ms, k_num)
-        loss = jnp.mean(jnp.abs(eigvals - Es)**2)
+        loss = jnp.mean(jnp.abs(eigvals - energies)**2)
 
         # use params['secondary_diags'], etc. to add secondary-matrix behavior to loss
 
@@ -190,6 +191,12 @@ class PMM:
         loss += l2 * (jnp.mean(jnp.abs(params["primary_diags"])**2) + 
                       jnp.mean(jnp.abs(params["primary_uppers"])**2))
         return loss
+
+    @staticmethod
+    def get_basis(Ls, num_primary):
+        powers = jnp.arange(num_primary)
+        basis = Ls[None, :] ** powers[:, None]
+        return basis
     
     # -------------------------------------------- Utility Methods --------------------------------------------
     @staticmethod
@@ -208,6 +215,12 @@ class PMM:
     @staticmethod
     def _get_eigenvalues(M, k_num):
         """
+        Parameters
+        ----------
+        M : jnparray
+            Array of PMM matrices shape (num_primary, n, n).
+        k_num : int
+            Take the `k_num`th lowest number of eigenvalues of M.
         Returns
         -------
         eigvals : jnparray
@@ -216,10 +229,6 @@ class PMM:
             shape (len(M), k_num, n)
 
         """
-        # If M is a single matrix, make it (1, M)
-        if M.ndim == 2:
-            M = M[None, :, :]
-        
         # compute eigenpairs
         eigvals, eigvecs = jnp.linalg.eigh(M)
 
@@ -236,16 +245,26 @@ class PMM:
 
     @staticmethod
     def _M(params, Ls):
-        Ls = jnp.atleast_1d(Ls)
-
+        """
+        Parameters
+        ----------
+        params : dict of jnparray
+            Parameters for PMM matrices.
+        Ls : jnparray
+            List of parameters. Shape (len(Ls),).
+        
+        Returns
+        -------
+        M : jnparray
+            List of PMM matrices. Shape (num_primary, n, n).
+        """
         # grab primary matrix parameters and construct H for each set
         diags, uppers = params["primary_diags"], params["primary_uppers"]
         Hs = PMM._construct_hermitian(diags, uppers)
         
         # construct M via power series (H_0 + g*H_1 + g^2*H_2 + ...) for total number of primary matrices
-        powers = jnp.arange(len(Hs))
-        weights = (Ls[None, :] ** powers[:, None])
-        M = jnp.einsum('bm,bij->mij', weights, Hs)
+        basis = PMM.get_basis(Ls, len(Hs))
+        M = jnp.einsum('bm,bij->mij', basis, Hs)
         return M
    
        

@@ -160,4 +160,3 @@ def load_model_eigenpairs(model_name, prelim, **kwargs):
     file_name = prelim + "__" + make_model_string(model_name, **kwargs) + ".pkl"
     path = os.path.join(DATA_DIR, file_name)
     return load_eigenpairs(path)
-
