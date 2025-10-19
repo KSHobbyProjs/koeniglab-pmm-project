@@ -123,8 +123,10 @@ class PMM:
 
     # add function here that wraps all pmm mechanics: sampling, training, predicting, saving, and loading
     # keep saving and loading separate in a pipeline code (like if load: PMM.load, etc.)
-    def run_pmm(self, sample_Ls, energies, target_Ls, k_num):
-        raise NotImplementedError
+    def run_pmm(self, sample_Ls, energies, epochs, target_Ls, k_num=1, store_loss=100):
+        self.sample_energies(sample_Ls, energies)
+        self.train_pmm(epochs, store_loss=store_loss)
+        eigvals = self.predict_energies(Ls_predict, k_num=k_num)
 
     # ------------------------------------------- Saving / Loading State ---------------------------------------
     def store_state(self, path):

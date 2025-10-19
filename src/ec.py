@@ -117,11 +117,9 @@ class EC:
         Returns
         -------
         eigenvalues : ndarray
-            Predicted eigenvalues at `target_Ls`.
-            Shape (k_num,) if `target_Ls` is scalar, otherwise (len(target_Ls), k_num).
+            Predicted eigenvalues at `target_Ls`. Shape (len(target_Ls), k_num).
         eigenvectors : ndarray
-            Predicted eigenvectors at `target_Ls`.
-            Shape (k_num, n) if `target_Ls` is scalar, otherwise (len(target_Ls), k_num, n).
+            Predicted eigenvectors at `target_Ls`. Shape (len(target_Ls), k_num, n).
 
         Raises
         ------
@@ -149,8 +147,6 @@ class EC:
             eigenvalues[i] = eigval[sort_indices][:k_num]
             eigenvectors[i] = eigvec[:, sort_indices][:, :k_num].T @ sample_vectors # eigenvectors have to be dotted with sample vectors since they're coordinate vectors
         
-        if np.isscalar(target_Ls):
-            return eigenvalues[0], eigenvectors[0]
         return eigenvalues, eigenvectors
 
 
