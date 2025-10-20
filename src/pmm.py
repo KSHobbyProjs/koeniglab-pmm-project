@@ -129,7 +129,7 @@ class PMM:
         eigvals = self.predict_energies(Ls_predict, k_num=k_num)
 
     # ------------------------------------------- Saving / Loading State ---------------------------------------
-    def store_state(self, path):
+    def get_state(self):
         state = {
                 # training info
                 "data" : self._sample_data,
@@ -149,12 +149,9 @@ class PMM:
                 "num_primary" : self._num_primary,
                 "num_secondary" : self._num_secondary
                 }
-        with open(path, "wb") as f:
-            pickle.dump(state, f)
+        return state
 
-    def load_state(self, path):
-        with open(path, "rb") as f:
-            state = pickle.load(f)
+    def set_state(self, state):
         # training info
         self._sample_data = state["data"]
         self._losses = state["losses"]

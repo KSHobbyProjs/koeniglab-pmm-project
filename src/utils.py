@@ -1,27 +1,9 @@
 import os
 import pickle
 import matplotlib.pyplot as plt
-import physics_models as pm
 import warnings
-
-# get directory where this file lives
-MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# get path for data/plots
-DATA_DIR = os.path.join(MODULE_DIR, "../data")
-PLOT_DIR = os.path.join(MODULE_DIR, "../data/plots")
-os.makedirs(DATA_DIR, exist_ok=True)
-os.makedirs(PLOT_DIR, exist_ok=True)
-
-# get eigenvectors from model
-def compute_exact_eigenpairs(model_name, Ls, k_num, **kwargs):
-    # get instance of class given by model_name
-    submodule_name, class_name = model_name.split(".", 1)
-    submodule = getattr(pm, submodule_name)
-    ModelClass = getattr(submodule, class_name)
-    instance = ModelClass(**kwargs)
-
-    return instance.get_eigenvectors(Ls, k_num)
+import json
+import datetime as dt
 
 # store eigenvalues in a pickled data file
 def save_eigenpairs(path, Ls, energies, eigenstates):
@@ -40,6 +22,16 @@ def load_eigenpairs(path):
     energies = data["energies"]
     eigenstates = data["eigenstates"]
     return Ls, energies, eigenstates
+
+def save_metadata(path, metdata):
+    metadata["data_created"] = dt.datetime.now().isoformat()
+    with open(path, "w") as f:
+        json.dump(metadata, f, indent=2)
+
+def load_metadata(path):
+    with open(path, "r") as f:
+        return json.load(f)
+
 
 def plot_eigenvalues(path, Ls, energies, k_num=1, show=False, **kwargs):
     """
@@ -102,22 +94,6 @@ def plot_eigenvalues(path, Ls, energies, k_num=1, show=False, **kwargs):
     if show: plt.show()
     plt.close(fig)
 
-# ---------------------------------------- Plotting Helpers -----------------------------------------
-def _get_k_indices(k_num):
-    if isinstance(k_num, int):
-        return [k_num]
-    try:
-        return list(k_num)
-    except TypeError:
-        raise TypeError("k_num must be an int or iterable of ints.")
-
-def _get_linestyle(Ls, user_style):
-    if isinstance(Ls, dict):
-        if isinstance(user_style, dict):
-            return user_style
-        return {key : user_style for key in Ls}
-    return user_style
-# ---------------------------------------------------------------------------------------------------
 def plot_eigenvalues_separately(directory_name, Ls, energies, k_indices=[0, 1, 2], show=False, **kwargs):
     if isinstance(k_indices, int):
         warnings.warn("`k_indices` is an int: combined.png will duplicate the single-state figure. Did you mean to use `plot_eigenvalues`?")
@@ -134,29 +110,24 @@ def plot_eigenvalues_separately(directory_name, Ls, energies, k_indices=[0, 1, 2
     fig_path = os.path.join(directory_name, "combined.png")
     plot_eigenvalues(fig_path, Ls, energies, k_num=k_indices, show=show, **kwargs)
 
-def process_exact_eigenpairs(model_name, Ls, k_num, plot_kwargs=None, **kwargs):
-    # make string to name data and plots
-    model_string = "exact_eigenpairs__" + make_model_string(model_name, **kwargs)
-    file_path = os.path.join(DATA_DIR, model_string + ".pkl")
-    plot_dir = os.path.join(PLOT_DIR, model_string)
+# ---------------------------------------- Plotting Helpers -----------------------------------------
+def _get_k_indices(k_num):
+    if isinstance(k_num, int):
+        return [k_num]
+    try:
+        return list(k_num)
+    except TypeError:
+        raise TypeError("k_num must be an int or iterable of ints.")
 
-    # grab values
-    energies, eigenstates = compute_exact_eigenpairs(model_name, Ls, k_num, **kwargs)
-    save_eigenpairs(file_path, Ls, energies, eigenstates)
-    plot_eigenvalues_separately(plot_dir, Ls, energies, k_indices=list(range(k_num)), show=False, **(plot_kwargs or {}))
+def _get_linestyle(Ls, user_style):
+    if isinstance(Ls, dict):
+        if isinstance(user_style, dict):
+            return user_style
+        return {key : user_style for key in Ls}
+    return user_style
+# ---------------------------------------------------------------------------------------------------
 
 def make_model_string(model_name, **kwargs):
     class_name = model_name.split(".", 1)[1]
     file_name = class_name + "__" + "__".join(f"{k}_{v}" for k, v in kwargs.items())
     return file_name
-
-def load_model_eigenpairs(model_name, prelim, **kwargs):
-    """
-    A wrapper for load_eigenpairs that handles path construction from the 
-    name of the model and a prelim tag like exact_eigenpairs, sample_eigenpairs,
-    or predicted_eigenpairs
-    """
-    
-    file_name = prelim + "__" + make_model_string(model_name, **kwargs) + ".pkl"
-    path = os.path.join(DATA_DIR, file_name)
-    return load_eigenpairs(path)

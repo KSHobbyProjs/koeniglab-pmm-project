@@ -232,8 +232,8 @@ class EC:
 
         Parameters
         ----------
-        sample_Ls : float or array_like
-            L values at which the eigenvectors were originally sampled.
+        sample_Ls : ndarray
+            L values at which the eigenvectors were originally sampled. Shape (len(sample_Ls),)
         sample_vectors : ndarray
             Sample eigenvectors, shape (len(sample_Ls), k_num, n), where k_num is the number of 
             eigenpairs sampled per L and n is the Hamiltonian dimension.
@@ -253,7 +253,6 @@ class EC:
         is updated automatically.
         """
 
-        sample_Ls = np.atleast_1d(sample_Ls)
         Ls_length, k_num, N3 = sample_vectors.shape
         N = round(N3**(1/3))
 
@@ -327,7 +326,8 @@ class EC:
         psi_dilated = psi_dilated.reshape(k_num, -1)
         norms = np.linalg.norm(psi_dilated, axis=1, keepdims=True)
         psi_dilated /= norms
-
+        
+        # squeeze if k_num=1
         if k_num == 1:
             return psi_dilated[0]
         return psi_dilated
