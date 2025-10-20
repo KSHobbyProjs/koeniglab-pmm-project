@@ -1,37 +1,6 @@
-import os
-import pickle
 import matplotlib.pyplot as plt
+import os
 import warnings
-import json
-import datetime as dt
-
-# store eigenvalues in a pickled data file
-def save_eigenpairs(path, Ls, energies, eigenstates):
-    with open(path, "wb") as f:
-        state_dict = {"Ls" : Ls,
-                      "energies" : energies,
-                      "eigenstates" : eigenstates
-                      }
-        pickle.dump(state_dict, f)
-
-# load data from pickle file
-def load_eigenpairs(path):
-    with open(path, "rb") as f:
-        data = pickle.load(f)
-    Ls = data["Ls"]
-    energies = data["energies"]
-    eigenstates = data["eigenstates"]
-    return Ls, energies, eigenstates
-
-def save_metadata(path, metdata):
-    metadata["data_created"] = dt.datetime.now().isoformat()
-    with open(path, "w") as f:
-        json.dump(metadata, f, indent=2)
-
-def load_metadata(path):
-    with open(path, "r") as f:
-        return json.load(f)
-
 
 def plot_eigenvalues(path, Ls, energies, k_num=1, show=False, **kwargs):
     """
@@ -127,7 +96,4 @@ def _get_linestyle(Ls, user_style):
     return user_style
 # ---------------------------------------------------------------------------------------------------
 
-def make_model_string(model_name, **kwargs):
-    class_name = model_name.split(".", 1)[1]
-    file_name = class_name + "__" + "__".join(f"{k}_{v}" for k, v in kwargs.items())
-    return file_name
+
