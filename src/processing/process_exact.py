@@ -38,4 +38,4 @@ def process_exact_eigenpairs(model_name, Ls, k_num, plot_kwargs=None, **model_kw
     # grab values
     energies, eigenstates = compute_exact_eigenpairs(model_name, Ls, k_num, **model_kwargs)
     utils.io.save_eigenpairs(file_path, Ls, energies, eigenstates)
-    utils.plot.plot_eigenvalues_separately(plot_dir, Ls, energies, k_indices=list(range(k_num)), show=False, **(plot_kwargs or {}))
+    utils.plot.plot_eigenvalues_separately(plot_dir, Ls, energies, k_indices=list(range(k_num)), show=False, save=True, **(plot_kwargs or {}))

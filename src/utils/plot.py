@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import os
 import warnings
 
-def plot_eigenvalues(path, Ls, energies, k_num=1, show=False, **kwargs):
+def plot_eigenvalues(path, Ls, energies, k_num=1, show=False, save=True, **kwargs):
     """
     Plot energies vs Ls for one or more sets of data. 
 
@@ -59,11 +59,11 @@ def plot_eigenvalues(path, Ls, energies, k_num=1, show=False, **kwargs):
     ax.legend()
 
     plt.tight_layout()
-    plt.savefig(path)
+    if save: plt.savefig(path)
     if show: plt.show()
     plt.close(fig)
 
-def plot_eigenvalues_separately(directory_name, Ls, energies, k_indices=[0, 1, 2], show=False, **kwargs):
+def plot_eigenvalues_separately(directory_name, Ls, energies, k_indices=[0, 1, 2], show=False, save=True, **kwargs):
     if isinstance(k_indices, int):
         warnings.warn("`k_indices` is an int: combined.png will duplicate the single-state figure. Did you mean to use `plot_eigenvalues`?")
     
@@ -77,7 +77,7 @@ def plot_eigenvalues_separately(directory_name, Ls, energies, k_indices=[0, 1, 2
     
     # plot a combined figure of all k_num states
     fig_path = os.path.join(directory_name, "combined.png")
-    plot_eigenvalues(fig_path, Ls, energies, k_num=k_indices, show=show, **kwargs)
+    plot_eigenvalues(fig_path, Ls, energies, k_num=k_indices, show=show, save=save, **kwargs)
 
 # ---------------------------------------- Plotting Helpers -----------------------------------------
 def _get_k_indices(k_num):

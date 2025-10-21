@@ -26,6 +26,7 @@ def main():
     k_num_predict = 1
     epochs = 10000
     store_loss = 100
+    plot_kwargs = {}
 
     sample_Ls = 5 + np.linspace(0, 1, 20)**1.5 + (10 - 5)
     predict_Ls = None
@@ -55,7 +56,12 @@ def main():
         print("[INFO] Exact eigenpair data not found. Computing exact eigenpair data now.")
         exact_energies, _ = processing.process_exact.compute_exact_eigenpairs(model_name, predict_Ls, k_num_predict, **model_kwargs)
         exact_Ls = predict_Ls
-    
+
+    # normalize sample_Ls, predict_Ls, sample_energies
+    lmin, lmax, sample_Ls = utils.math.normalize(sample_Ls)
+    emin, emax, sample_energies = utils.math.normalize(sample_energies)
+    plmin, plmax, predict_Ls = utils.math.normalize(predict_Ls)
+
     # define pmm instance
     pmm_instance = pmm.PMM(**pmm_kwargs)
 
@@ -88,8 +94,17 @@ def main():
         utils.io.save_metadata(metadata_path, metadata)
         utils.io.save_state(state_path, state)
 
+    # denormalize data
+    sample_Ls = utils.denormalize(lmin, lmax, sample_Ls)
+    sample_energies = utils.denormalize(emin, emax, sample_energies)
+    predict_energies = utils.denormalize(emin, emax, predict_energies)
+    predict_Ls = utils.denormalize(plmin, plmax, predict_Ls)
+
     # plot predictions
-    utils.plot.plot_eigenvalues_separately.
+    Ls = {"sample" : sample_Ls, "exact" : exact_Ls, "prediction" : predict_Ls}
+    energies = {"sample" : sample_energies, "exact" : exact_energies, "prediction" : predict_energies}
+    linestyle = {"sample" : 'o', "exact" : '--', "predict" : '--'}
+    utils.plot.plot_eigenvalues_separately(plot_dir, Ls, energies, k_indices=list(range(k_num_predict)), show=True, save=save, **(plot_kwargs or {}))
 
 
 
