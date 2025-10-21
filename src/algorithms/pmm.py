@@ -29,6 +29,9 @@ class PMM:
         self._eps = eps
         self._absmaxgrad = absmaxgrad
         self._l2 = l2
+        
+        self._mag = mag   # these two are only recorded for metadata, never used internally past `_init_params()`
+        self._seed = seed
 
         # Initialize learnable Hermitian parameters
         key = jax.random.PRNGKey(seed)
@@ -124,10 +127,31 @@ class PMM:
     # keep saving and loading separate in a pipeline code (like if load: PMM.load, etc.)
     def run_pmm(self, sample_Ls, energies, epochs, target_Ls, k_num=1, store_loss=100):
         self.sample_energies(sample_Ls, energies)
-        self.train_pmm(epochs, store_loss=store_loss)
+        _, losses = self.train_pmm(epochs, store_loss=store_loss)
         eigvals = self.predict_energies(Ls_predict, k_num=k_num)
+        return losses, eigvals
 
     # ------------------------------------------- Saving / Loading State ---------------------------------------
+    def get_metadata(self):
+        metadata = {
+                "dim" : self._dim,
+                "num_primary" : self._num_primary,
+                "k_num_sample" : self._sample_data["energies"].shape[1],
+                "sample_Ls" : f"min-{min(self._sample_data['Ls'])}--max-{max(self._sample_data['Ls'])}--len-{len(self._sample_data['Ls'])}"
+                "epochs" : len(self._losses),
+                "final_loss" : self._losses[-1],
+                "num_secondary" : self._num_secondary
+                "eta" : self._eta,
+                "beta1" : self._beta1,
+                "beta2" : self._beta2,
+                "eps" : self._eps,
+                "absmaxgrad" : self._absmaxgrad,
+                "l2" : self._l2,
+                "mag" : self._mag,
+                "seed" : self._seed
+                }
+        return metadata
+
     def get_state(self):
         state = {
                 # training info
@@ -146,7 +170,9 @@ class PMM:
                 # model info
                 "dim" : self._dim,
                 "num_primary" : self._num_primary,
-                "num_secondary" : self._num_secondary
+                "num_secondary" : self._num_secondary,
+                "mag" = self._mag,
+                "seed" = self._seed
                 }
         return state
 
@@ -168,6 +194,9 @@ class PMM:
         self._dim = state["dim"]
         self._num_primary = state["num_primary"]
         self._num_secondary = state["num_secondary"]
+
+        self._mag = state["mag"]
+        self._seed = state["seed"]
 
     # ------------------------------------------- Loss and Basis for M ---------------------------------------
     # loss function

@@ -1,10 +1,97 @@
 #!/usr/bin/env python
-import physics_models as pm
+import os
 import numpy as np
-import ec
-import matplotlib.pyplot as plt
 import pickle
-import pmm
+from src.algorithms import pmm
+from src import utils
+from src import processing
+
+def main():
+    model_name = "gaussian.Gaussian1d"
+    model_kwargs = {"V0" : -4, "R" : 2}
+    pmm_kwargs = {
+            "dim" : 2,
+            "num_primary" : 2,
+            "num_secondary" : 0,
+            "eta" : .2e-2,
+            "beta1" : 0.9,
+            "beta2" : 0.999,
+            "eps" : 1e-8,
+            "absmaxgrad" : 1e3,
+            "l2" : 0.0,
+            "mag" : 0.5e-1,
+            "seed" : 0
+            }
+    k_num_sample = 1
+    k_num_predict = 1
+    epochs = 10000
+    store_loss = 100
+
+    sample_Ls = 5 + np.linspace(0, 1, 20)**1.5 + (10 - 5)
+    predict_Ls = None
+    try_load = True
+    save = False
+
+    MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
+    DATA_DIR = os.path.join(MODULE_DIR, "data")
+    RESULTS_DIR = os.path.join(MODULE_DIR, "results")
+    MODEL_SUBDIR = os.path.join(RESULTS_DIR, utils.misc.make_model_string(model_name, **model_kwargs))
+    os.makedirs(DATA_DIR, exist_ok=True)
+    os.makedirs(RESULTS_DIR, exist_ok=True)
+    os.makedirs(MODEL_SUBDIR, exist_ok=True)
+ 
+    # create file_name_kwargs list that includes pmm_kwargs and sample information and create dir to store experiment in
+    pmm_string = utils.misc.make_pmm_string(pmm_kwargs, k_num_sample, sample_Ls)
+    EXPERIMENT_DIR = os.path.join(MODEL_SUBDIR, pmm_string)
+
+    # grab exact values if they exist
+    model_string = utils.misc.make_model_string(model_name, **model_kwargs)
+    file_path = os.join(DATA_DIR, "exact_eigenpairs__" + model_string + ".pkl")
+    try:
+        exact_Ls, exact_energies, _ = utils.io.load(file_path)
+        if predict_Ls is None: predict_Ls = exact_Ls
+    except FileNotFoundError:
+        if predict_Ls is None: raise FileNotFoundError("No exact eigenpair data was found. predict_Ls can't be None if no exact eigenpair data is preloaded")
+        print("[INFO] Exact eigenpair data not found. Computing exact eigenpair data now.")
+        exact_energies, _ = processing.process_exact.compute_exact_eigenpairs(model_name, predict_Ls, k_num_predict, **model_kwargs)
+        exact_Ls = predict_Ls
+    
+    # define pmm instance
+    pmm_instance = pmm.PMM(**pmm_kwargs)
+
+    # load, run, predict pmm_state
+    if try_load and os.path.isdir(EXPERIMENT_DIR):
+        print("[INFO] Found PMM state to load. sample_Ls could be different from what's loaded.\n Set `try_load=False` if don't want to load a pmm state.")
+        path = os.path.join(EXPERIMENT_DIR, "pmm_state.pkl")
+        state = utils.io.load_state(path)
+        pmm_instance.set_state(state) 
+        _, losses = pmm_instance.train_pmm(epochs, store_loss)
+        predict_energies = pmm_instance.predict_energies(predict_Ls, k_num_predict)
+    else:
+        os.makedirs(EXPERIMENT_DIRS, exist_ok=True)
+        # compute sample energies
+        sample_energies, _ = processing.process_exact.compute_exact_eigenpairs(model_name, sample_Ls, k_num_sample, **model_kwargs)
+        losses, predict_energies = pmm_instance.run_pmm(sample_Ls, sample_energies, epochs, predict_Ls, k_num_predict, store_loss)
+
+    # save / don't save pmm
+    if save:
+        state = pmm_instance.get_state()
+        metadata = pmm_instance.get_metadata()
+
+        state_path = os.path.join(EXPERIMENT_DIR, "pmm_state.pkl")
+        metadata_path = os.path.join(EXPERIMENT_DIR, "metadata.json")
+        energies_path = os.path.join(EXPERIMENT_DIR, "pmm_predicted_eigenpairs")
+        plots_path = os.path.join(EXPERIMENT_DIR, "plots")
+        os.makedirs(plots_path, exist_ok=True)  
+
+        utils.io.save_eigenpairs(energies_path, predict_Ls, predict_energies, None)
+        utils.io.save_metadata(metadata_path, metadata)
+        utils.io.save_state(state_path, state)
+
+    # plot predictions
+    utils.plot.plot_eigenvalues_separately.
+
+
 
 if __name__=="__main__":
     

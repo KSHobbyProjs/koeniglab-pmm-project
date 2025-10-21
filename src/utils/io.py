@@ -28,3 +28,12 @@ def save_metadata(path, metdata):
 def load_metadata(path):
     with open(path, "r") as f:
         return json.load(f)
+
+def save_state(path, state):
+    with open(path, "wb") as f:
+        pickle.dump(state, f)
+
+def load_state(path):
+    with open(path, "rb") as f:
+        state = pickle.load(f)
+        return state
