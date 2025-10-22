@@ -64,13 +64,17 @@ def _load_and_run_pmm(pmm_instance, experiment_dir, epochs, store_loss, predict_
     pmm_instance.set_state(state)
     if epochs > 0: 
         pmm_instance.train_pmm(epochs, store_loss)
+
+    # with pmm trained, predict energies (normalize predict_Ls first)
+    # we change the bounds in case predict_Ls is different from what it was when loading the state
+    plmin, plmax, predict_Ls = utils.math.normalize(predict_Ls)
+    bounds = (bounds[0], bounds[1], bounds[2], bounds[3], plmin, plmax)
     predict_energies = pmm_instance.predict_energies(predict_Ls, k_num_predict)
     losses = pmm_instance.get_state()["losses"]
 
     # denormalize data
     sample_Ls, sample_energies, predict_Ls, predict_energies = denormalize_data(
             bounds, sample_Ls, sample_energies, predict_Ls, predict_energies)
-    print(predict_energies)
     return bounds, losses, sample_Ls, sample_energies, predict_energies
 
 def _train_new_pmm(model_name, model_kwargs, pmm_instance, sample_Ls, k_num_sample, epochs, predict_Ls, k_num_predict, store_loss):
