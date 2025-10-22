@@ -18,7 +18,7 @@ def experiment_subdir(model_name, model_kwargs, pmm_kwargs, k_num_sample, sample
     model_string = misc.make_model_string(model_name, **model_kwargs)
     model_subdir = os.path.join(RESULTS_DIR, model_string)
     
-    file_name_kwargs = pmm_kwargs
+    file_name_kwargs = pmm_kwargs.copy()
     file_name_kwargs["k_num_sample"] = k_num_sample
     file_name_kwargs["sample_Ls"] = f"min-{min(sample_Ls)}--max-{max(sample_Ls)}--len-{len(sample_Ls)}"
     pmm_string = misc.make_pmm_string(file_name_kwargs)

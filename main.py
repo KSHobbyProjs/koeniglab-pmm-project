@@ -1,241 +1,70 @@
 #!/usr/bin/env python
 import os
 import numpy as np
-import pickle
-from src.algorithms import pmm
 from src import utils
 from src import processing
 
 def main(model_name, model_kwargs, pmm_kwargs, k_num_sample, k_num_predict, epochs, store_loss, plot_kwargs, sample_Ls, predict_Ls, try_load, save):
     # create directory to store experiment in
     EXPERIMENT_DIR = utils.paths.experiment_subdir(model_name, model_kwargs, pmm_kwargs, k_num_sample, sample_Ls)
+    PLOT_DIR = os.path.join(EXPERIMENT_DIR, "plots")
 
     # grab exact eigenpair data if it exists, otherwise load it. if predict_Ls is None, assume user wants to take predictions at exact Ls.
-    exact_Ls, exact_energies, _ = processing.process_exact.load_exact_eigenpairs(model_pairs, predict_Ls, k_num_predict, **model_kwargs)
+    print("Grabbing exact eigenpair data.")
+    exact_Ls, exact_energies, _ = processing.process_exact.load_exact_eigenpairs(model_name, predict_Ls, k_num_predict, **model_kwargs)
     if predict_Ls is None: predict_Ls = exact_Ls
+    print("Exact eigenpair data grabbed.")
 
     # define pmm instance
-    pmm_instance = process.process_pmm.initialize_pmm(**pmm_kwargs)
+    pmm_instance = processing.process_pmm.initialize_pmm(**pmm_kwargs)
 
-    # load, run, predict pmm_state
-    if try_load and os.path.isdir(EXPERIMENT_DIR):
-        print("[INFO] Found PMM state to load. sample_Ls could be different from what's loaded.\n Set `try_load=False` if don't want to load a pmm state.")
-        path = os.path.join(EXPERIMENT_DIR, "pmm_state.pkl")
-        state = utils.io.load_state(path)
-        pmm_instance.set_state(state) 
-        _, losses = pmm_instance.train_pmm(epochs, store_loss)
-        predict_energies = pmm_instance.predict_energies(predict_Ls, k_num_predict)
-    else:
-        os.makedirs(EXPERIMENT_DIRS, exist_ok=True)
-        # compute sample energies
-        sample_energies, _ = processing.process_exact.compute_exact_eigenpairs(model_name, sample_Ls, k_num_sample, **model_kwargs)
-        losses, predict_energies = pmm_instance.run_pmm(sample_Ls, sample_energies, epochs, predict_Ls, k_num_predict, store_loss)
-
-
-    # normalize sample_Ls, sample_energies, and predict_Ls for easier training with PMM
-    bounds, sample_Ls, sample_energies, predict_Ls = processing.process_pmm.normalize_data(sample_Ls, sample_energies, predict_Ls)
-
+    # run pmm, computing normalization bounds, losses, sample_Ls, sample_energies, and predict_energies
+    print("Training PMM and predicting eigenvalues.")
+    bounds, losses, sample_Ls, sample_energies, predict_energies = processing.process_pmm.run_or_load_pmm(EXPERIMENT_DIR, pmm_instance, model_name, model_kwargs,
+                                                                           sample_Ls, predict_Ls, k_num_sample, k_num_predict, epochs, store_loss,
+                                                                           try_load)
+    print(f"Finished training PMM. Final loss: {losses[-1]}.")
     # save / don't save pmm
     if save:
-        state = pmm_instance.get_state()
-        metadata = pmm_instance.get_metadata()
-
-        state_path = os.path.join(EXPERIMENT_DIR, "pmm_state.pkl")
-        metadata_path = os.path.join(EXPERIMENT_DIR, "metadata.json")
-        energies_path = os.path.join(EXPERIMENT_DIR, "pmm_predicted_eigenpairs")
-        plots_path = os.path.join(EXPERIMENT_DIR, "plots")
-        os.makedirs(plots_path, exist_ok=True)  
-
-        utils.io.save_eigenpairs(energies_path, predict_Ls, predict_energies, None)
-        utils.io.save_metadata(metadata_path, metadata)
-        utils.io.save_state(state_path, state)
-
-    # denormalize data
-    sample_Ls, sample_energies, predict_Ls, predict_energies = processing.process_pmm.denormalize_data(bounds, sample_Ls, sample_energies, predict_Ls, predict_energies)
+        print("Saving PMM state.")
+        # if save, create experiment directory and save pmm state
+        os.makedirs(EXPERIMENT_DIR, exist_ok=True)
+        os.makedirs(PLOT_DIR, exist_ok=True)
+        processing.process_pmm.save_pmm(EXPERIMENT_DIR, pmm_instance, bounds, sample_Ls, predict_Ls, predict_energies)
+        print("Finished saving PMM state.")
 
     # plot predictions
-    Ls = {"sample" : sample_Ls, "exact" : exact_Ls, "prediction" : predict_Ls}
-    energies = {"sample" : sample_energies, "exact" : exact_energies, "prediction" : predict_energies}
-    linestyle = {"sample" : 'o', "exact" : '--', "predict" : '--'}
-    utils.plot.plot_eigenvalues_separately(plot_dir, Ls, energies, k_indices=list(range(k_num_predict)), show=True, save=save, **(plot_kwargs or {}))
-
-
+    print("Plotting eigenvalues, loss, and percent error if possible.")
+    processing.process_pmm.make_all_plots(PLOT_DIR, sample_Ls, exact_Ls, predict_Ls, sample_energies, exact_energies, predict_energies, losses, store_loss, 
+                                          plot_kwargs, save=save, show=True)
+    print("Finished plotting.\n Experiment complete.")
 
 if __name__=="__main__":
     model_name = "gaussian.Gaussian1d"
-    model_kwargs = {"V0" : -4, "R" : 2}
+    model_kwargs = {"N" : 128, "V0" : -4, "R" : 2}
     pmm_kwargs = {
-            "dim" : 2,
+            "dim" : 6,
             "num_primary" : 2,
             "num_secondary" : 0,
-            "eta" : .2e-2,
+            "eta" : 1e-2,
             "beta1" : 0.9,
             "beta2" : 0.999,
             "eps" : 1e-8,
             "absmaxgrad" : 1e3,
             "l2" : 0.0,
-            "mag" : 0.5e-1,
-            "seed" : 0
+            "mag" : 1e-1,
+            "seed" : 153
             }
     k_num_sample = 1
     k_num_predict = 1
-    epochs = 10000
+    epochs = 0
     store_loss = 100
-    plot_kwargs = {}
+    plot_kwargs = {"xlabel" : "System Length", 
+                   "title" : "Gaussian1d (V0=-4, R=2)"}
 
-    sample_Ls = 5 + np.linspace(0, 1, 20)**1.5 + (10 - 5)
+    sample_Ls = 5 + np.linspace(0, 1, 20)**1.5 * (20 - 5)
     predict_Ls = None
     try_load = True
-    save = False
+    save = True
 
     main(model_name, model_kwargs, pmm_kwargs, k_num_sample, k_num_predict, epochs, store_loss, plot_kwargs, sample_Ls, predict_Ls, try_load, save)
-    
-    # load ising model
-    """
-    N = 4
-    ising = pm.ising.Ising(N)
-    
-    with open("../data/ising_energies.pkl", "rb") as f:
-        data = pickle.load(f)
-
-    gs_actual = data["Ls"]
-    Es_actual = data["energies"]
-
-    k_num = 3
-    gs_sample = np.linspace(0, .5, 10)
-    Es_sample = ising.get_eigenvalues(gs_sample, k_num=k_num)
-    """    
-    
-    # ----------------------------------------------- Load Gaussian1d Model ---------------------------
-    N = 128
-    V0, R = 4.0, 2.0
-    gauss = pm.gaussian_1d.Gaussian1d(N, V0=V0, R=R)
-
-    # import ground state energies and eigenvectors
-    with open("../data/gauss1d_V0_4_R_2.pkl", "rb") as f:
-        data = pickle.load(f)
-
-    gs_actual = data["Ls"]
-    Es_actual = data["energies"]
-    
-    # get sampling data
-    k_num = 3
-    gs_sample = 5 + np.linspace(0, 1, 20)**1.5 * (10 - 5)
-    Es_sample = gauss.get_eigenvalues(gs_sample, k_num=k_num)
-    # --------------------------------------------------------------------------------------------------
-
-    # normalize gs_sample, Es_sample to be b/w -1 and 1 (TEST)
-    gmin, gmax = np.min(gs_sample), np.max(gs_sample)
-    Emin, Emax = np.min(Es_sample), np.max(Es_sample)
-    gs_sample = 2 * (gs_sample - gmin) / (gmax - gmin) - 1
-    Es_sample = 2 * (Es_sample - Emin) / (Emax - Emin) - 1
-
-    # define pmm
-    epochs = 25000
-    store_loss = 100
-    dim = 8
-    pmm_gauss = pmm.PMM(dim=dim,num_primary=3, eta=1e-2, l2=0.0, mag=.5e-1, seed=153)
-    # input sampling data
-    pmm_gauss.sample(gs=gs_sample, Es=Es_sample)
-    # train pmm and grab loss
-    params, loss = pmm_gauss.train(epochs=epochs, store_loss=store_loss)
-    pmm_gauss.store(path="../data/gauss_state.pkl")
-    # predict using trained pmm
-    gs_actual = 2 * (gs_actual - gmin) / (gmax - gmin) - 1 # normalize prediction gs to pass to model
-    Es_predict = pmm_gauss.predict(gs_actual, k_num=k_num)
-    # de-normalize sample and prediction data
-    gs_sample = (gs_sample + 1) * (gmax - gmin) / 2 + gmin
-    Es_sample = (Es_sample + 1) * (Emax - Emin) / 2 + Emin
-    gs_actual = (gs_actual + 1) * (gmax - gmin) / 2 + gmin
-    Es_predict = (Es_predict + 1) * (Emax - Emin) / 2 + Emin
-    
-    # predict function flattens if k_num=1, unflatten for plotting purposes
-    if Es_predict.ndim == 1:
-        Es_predict = Es_predict[:, None]
-
-    # plot and print loss 
-    print(loss[-1])
-    fig, ax = plt.subplots()
-    ax.plot(store_loss * np.arange(len(loss)), np.log10(loss), '-')
-    ax.set_xlabel("Epochs")
-    ax.set_ylabel("log(loss)")
-    ax.set_title("Loss vs Epochs")
-    plt.show()
-   
-    # plot actual data, sample points, and predictions
-    for k in range(k_num):
-        fig, ax = plt.subplots()
-        ax.plot(gs_actual, Es_actual[:,k], '-', label="Actual")
-        ax.plot(gs_sample, Es_sample[:,k], 'o', label="Sample")
-        ax.plot(gs_actual, Es_predict[:,k], '--', label="Predictions")
-        ax.set_xlabel("System Length")
-        ax.set_ylabel("Energy")
-        ax.set_title(f"Energy vs System Size: k:{k}")
-        ax.legend()
-    plt.show()
-
-    # plot percent error
-    fig, ax = plt.subplots()
-    for k in range(k_num):
-        pe = np.abs((Es_actual[:,k] - Es_predict[:,k]) / Es_actual[:,k])
-        ax.plot(gs_actual, pe, label=f"{k} state")
-    ax.set_xlabel("System Length")
-    ax.set_ylabel("% Error")
-    ax.set_title("% Error vs System Length")
-    ax.legend()
-    plt.show()
-
-    """
-    # plot ground state eigenvector
-    L_index = 10
-    L = Ls_actual[L_index]
-    a_phys = L / N
-    psi = states[L_index]
-    psi2 = np.abs(psi)**2 / a_phys**3
-    
-    ys2d, xs2d = np.indices((N, N))
-    xs2d = (xs2d.flatten() - N / 2) * a_phys
-    ys2d = (ys2d.flatten() - N / 2) * a_phys
-    plt.scatter(xs2d, ys2d, c=psi2[:N**2]*a_phys, cmap='viridis')
-    plt.colorbar()
-    plt.show()
-
-    # dilate ground state eigenvector and plot
-    L_target = 10
-    a_phys = L_target / N
-    psi_dilated = ec.EC.dilate(L, L_target, psi)
-    psi_dilated2 = np.abs(psi_dilated)**2 / a_phys**3
-
-    ys2d, xs2d = np.indices((N, N))
-    xs2d = (xs2d.flatten() - N / 2) * a_phys
-    ys2d = (ys2d.flatten() - N / 2) * a_phys 
-    plt.scatter(xs2d, ys2d, c=psi_dilated2[:N**2]*a_phys, cmap='viridis')
-    plt.colorbar()
-    plt.show()
-    """
-    
-    """
-    # use EC to find predictions for ground state energies
-    Ls_train = np.arange(5, 13) 
-    Es_train = gauss.get_eigenvalues(Ls_train)
-    Es_predict, _ = gauss_ec.solve(Ls_train, Ls_actual, k_num_sample=6, k_num_predict=1, dilate=False)
-    
-    # find index
-    L_star = 20
-    temp = np.ones_like(Ls_actual) * L_star
-    error = abs(Ls_actual - temp)
-    i = np.argmin(error)
-    print(Ls_actual[i])
-    print(Es_predict[i])
-
-    fig, ax = plt.subplots()
-    ax.plot(Ls_train, Es_train, 'o', label='training values')
-    ax.plot(Ls_actual, Es_actual, '-', label='test energies')
-    ax.plot(Ls_actual, Es_predict, '--', label='prediction')
-    ax.set_xlabel('System Size L')
-    ax.set_ylabel('Ground State Energy E')
-    ax.set_title('Ground State Energy vs System Size')
-    ax.legend()
-    plt.show() 
-    """
-

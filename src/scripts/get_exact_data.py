@@ -5,7 +5,7 @@ from ..processing import process_exact as pe
 if __name__=="__main__":
         
     # process Gaussian eigenpairs
-    Ls = np.linspace(5, 20, 100)
+    Ls = np.linspace(5, 20, 150)
     pe.process_exact_eigenpairs("gaussian.Gaussian3d", Ls=Ls, k_num=9, plot_kwargs={"xlabel" : "System Length",
                                                                      "title" : "Attractive 3D Gaussian (N=32, V0=-4, R=2)"}, N=32, V0=-4, R=2)
     pe.process_exact_eigenpairs("gaussian.Gaussian3d", Ls=Ls, k_num=10, plot_kwargs={"xlabel" : "System Length",

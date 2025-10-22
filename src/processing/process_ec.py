@@ -1,4 +1,4 @@
-
+raise NotImplementedError
 def process_ec_predicted_eigenpairs(
         model_name,
         sample_Ls,

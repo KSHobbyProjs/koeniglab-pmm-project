@@ -1,0 +1,20 @@
+{
+  "dim": 6,
+  "num_primary": 2,
+  "k_num_sample": 1,
+  "epochs": 10000,
+  "final_loss": 9.808829278872454e-05,
+  "num_secondary": 0,
+  "eta": 0.01,
+  "beta1": 0.9,
+  "beta2": 0.999,
+  "eps": 1e-08,
+  "absmaxgrad": 1000.0,
+  "l2": 0.0,
+  "mag": 0.1,
+  "seed": 153,
+  "sample_Ls": [
+    "min-5.0--max-20.0--len-20"
+  ],
+  "data_created": "2025-10-22T16:19:49.961120"
+}

@@ -8,8 +8,8 @@ def load_exact_eigenpairs(model_name, Ls, k_num, **model_kwargs):
 
     grabs Ls and eigenpair from a pkl file if it exists; if not, computes eigenpair data at Ls. 
     """
-    model_string = utils.make_model_string(model_name, **model_kwargs)
-    file_path = os.join(utils.paths.DATA_DIR, "exact_eigenpairs__" + model_string + ".pkl") 
+    model_string = utils.misc.make_model_string(model_name, **model_kwargs)
+    file_path = os.path.join(utils.paths.DATA_DIR, "exact_eigenpairs__" + model_string + ".pkl") 
     try:
         exact_Ls, exact_energies, exact_states = utils.io.load_eigenpairs(file_path)
         exact_energies = exact_energies[:, :k_num]
@@ -39,7 +39,7 @@ def process_exact_eigenpairs(model_name, Ls, k_num, plot_kwargs=None, **model_kw
     # make string to name data and plots
     model_string = "exact_eigenpairs__" + utils.misc.make_model_string(model_name, **model_kwargs)
     file_path = os.path.join(utils.paths.DATA_DIR, model_string + ".pkl")
-    plot_dir = os.path.join(utils.paths.PLOT_DIR, model_string)
+    plot_dir = os.path.join(utils.paths.DATA_PLOTS_DIR, model_string)
 
     # grab values
     energies, eigenstates = compute_exact_eigenpairs(model_name, Ls, k_num, **model_kwargs)

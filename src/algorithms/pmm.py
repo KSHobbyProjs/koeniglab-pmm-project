@@ -21,6 +21,7 @@ class PMM:
         
         self._sample_data = {}
         self._losses = []
+        self._epochs = 0
 
         # ADAM state
         self._eta = eta
@@ -88,6 +89,8 @@ class PMM:
         grad_loss = jax.jit(jax.grad(jit_loss))
 
         for t in range(epochs):
+            # update epoch counter
+            self._epochs += 1
             # calculate the gradient (automatically applies through leafs (dictionary keys))
             # update the parameters with jax.tree.map (automatically aligns and moves through
             # dictionary keys so the whole dictionary can be moved through at once)
@@ -111,7 +114,7 @@ class PMM:
                 losses_at_t = jit_loss(params, Ls, energies, self._l2)
                 losses[t // store_loss] = losses_at_t
         
-        self._losses.append(losses)
+        self._losses.extend(losses)
         self._params = params
         self._vt, self._mt = vt, mt
         return params, losses 
@@ -125,7 +128,7 @@ class PMM:
 
     # add function here that wraps all pmm mechanics: sampling, training, predicting, saving, and loading
     # keep saving and loading separate in a pipeline code (like if load: PMM.load, etc.)
-    def run_pmm(self, sample_Ls, energies, epochs, target_Ls, k_num=1, store_loss=100):
+    def run_pmm(self, sample_Ls, energies, epochs, Ls_predict, k_num=1, store_loss=100):
         self.sample_energies(sample_Ls, energies)
         _, losses = self.train_pmm(epochs, store_loss=store_loss)
         eigvals = self.predict_energies(Ls_predict, k_num=k_num)
@@ -133,14 +136,17 @@ class PMM:
 
     # ------------------------------------------- Saving / Loading State ---------------------------------------
     def get_metadata(self):
+        # flag error if no data has been sampled
+        if not self._sample_data: raise RuntimeError("Can't get metadata because `sample()` hasn't been run. Sample data needs to be run to store metadata.")
+        # if data has been sampled but pmm hasn't been run
+        final_loss = self._losses[-1] if len(self._losses) > 0 else 'not-run'
         metadata = {
                 "dim" : self._dim,
                 "num_primary" : self._num_primary,
                 "k_num_sample" : self._sample_data["energies"].shape[1],
-                "sample_Ls" : f"min-{min(self._sample_data['Ls'])}--max-{max(self._sample_data['Ls'])}--len-{len(self._sample_data['Ls'])}"
-                "epochs" : len(self._losses),
-                "final_loss" : self._losses[-1],
-                "num_secondary" : self._num_secondary
+                "epochs" : self._epochs,
+                "final_loss" : final_loss,
+                "num_secondary" : self._num_secondary,
                 "eta" : self._eta,
                 "beta1" : self._beta1,
                 "beta2" : self._beta2,
@@ -171,18 +177,28 @@ class PMM:
                 "dim" : self._dim,
                 "num_primary" : self._num_primary,
                 "num_secondary" : self._num_secondary,
-                "mag" = self._mag,
-                "seed" = self._seed
+                "mag" : self._mag,
+                "seed" : self._seed,
+                "epochs" : self._epochs
                 }
         return state
 
     def set_state(self, state):
+        # define function to re-jax-ify arrays
+        def _to_jax(x):
+            if isinstance(x, np.ndarray):
+                return jnp.array(x)
+            elif isinstance(x, dict):
+                return {k : _to_jax(v) for k, v in x.items()}
+            else:
+                return x
+
         # training info
-        self._sample_data = state["data"]
+        self._sample_data = _to_jax(state["data"])
         self._losses = state["losses"]
-        self._params = state["params"]
-        self._vt = state["vt"]
-        self._mt = state["mt"]
+        self._params = _to_jax(state["params"])
+        self._vt = _to_jax(state["vt"])
+        self._mt = _to_jax(state["mt"])
         # adam info
         self._eta = state["eta"]
         self._beta1 = state["beta1"]
@@ -197,6 +213,7 @@ class PMM:
 
         self._mag = state["mag"]
         self._seed = state["seed"]
+        self._epochs = state["epochs"]
 
     # ------------------------------------------- Loss and Basis for M ---------------------------------------
     # loss function
