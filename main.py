@@ -6,7 +6,62 @@ from src.algorithms import pmm
 from src import utils
 from src import processing
 
-def main():
+def main(model_name, model_kwargs, pmm_kwargs, k_num_sample, k_num_predict, epochs, store_loss, plot_kwargs, sample_Ls, predict_Ls, try_load, save):
+    # create directory to store experiment in
+    EXPERIMENT_DIR = utils.paths.experiment_subdir(model_name, model_kwargs, pmm_kwargs, k_num_sample, sample_Ls)
+
+    # grab exact eigenpair data if it exists, otherwise load it. if predict_Ls is None, assume user wants to take predictions at exact Ls.
+    exact_Ls, exact_energies, _ = processing.process_exact.load_exact_eigenpairs(model_pairs, predict_Ls, k_num_predict, **model_kwargs)
+    if predict_Ls is None: predict_Ls = exact_Ls
+
+    # define pmm instance
+    pmm_instance = process.process_pmm.initialize_pmm(**pmm_kwargs)
+
+    # load, run, predict pmm_state
+    if try_load and os.path.isdir(EXPERIMENT_DIR):
+        print("[INFO] Found PMM state to load. sample_Ls could be different from what's loaded.\n Set `try_load=False` if don't want to load a pmm state.")
+        path = os.path.join(EXPERIMENT_DIR, "pmm_state.pkl")
+        state = utils.io.load_state(path)
+        pmm_instance.set_state(state) 
+        _, losses = pmm_instance.train_pmm(epochs, store_loss)
+        predict_energies = pmm_instance.predict_energies(predict_Ls, k_num_predict)
+    else:
+        os.makedirs(EXPERIMENT_DIRS, exist_ok=True)
+        # compute sample energies
+        sample_energies, _ = processing.process_exact.compute_exact_eigenpairs(model_name, sample_Ls, k_num_sample, **model_kwargs)
+        losses, predict_energies = pmm_instance.run_pmm(sample_Ls, sample_energies, epochs, predict_Ls, k_num_predict, store_loss)
+
+
+    # normalize sample_Ls, sample_energies, and predict_Ls for easier training with PMM
+    bounds, sample_Ls, sample_energies, predict_Ls = processing.process_pmm.normalize_data(sample_Ls, sample_energies, predict_Ls)
+
+    # save / don't save pmm
+    if save:
+        state = pmm_instance.get_state()
+        metadata = pmm_instance.get_metadata()
+
+        state_path = os.path.join(EXPERIMENT_DIR, "pmm_state.pkl")
+        metadata_path = os.path.join(EXPERIMENT_DIR, "metadata.json")
+        energies_path = os.path.join(EXPERIMENT_DIR, "pmm_predicted_eigenpairs")
+        plots_path = os.path.join(EXPERIMENT_DIR, "plots")
+        os.makedirs(plots_path, exist_ok=True)  
+
+        utils.io.save_eigenpairs(energies_path, predict_Ls, predict_energies, None)
+        utils.io.save_metadata(metadata_path, metadata)
+        utils.io.save_state(state_path, state)
+
+    # denormalize data
+    sample_Ls, sample_energies, predict_Ls, predict_energies = processing.process_pmm.denormalize_data(bounds, sample_Ls, sample_energies, predict_Ls, predict_energies)
+
+    # plot predictions
+    Ls = {"sample" : sample_Ls, "exact" : exact_Ls, "prediction" : predict_Ls}
+    energies = {"sample" : sample_energies, "exact" : exact_energies, "prediction" : predict_energies}
+    linestyle = {"sample" : 'o', "exact" : '--', "predict" : '--'}
+    utils.plot.plot_eigenvalues_separately(plot_dir, Ls, energies, k_indices=list(range(k_num_predict)), show=True, save=save, **(plot_kwargs or {}))
+
+
+
+if __name__=="__main__":
     model_name = "gaussian.Gaussian1d"
     model_kwargs = {"V0" : -4, "R" : 2}
     pmm_kwargs = {
@@ -33,82 +88,7 @@ def main():
     try_load = True
     save = False
 
-    MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
-    DATA_DIR = os.path.join(MODULE_DIR, "data")
-    RESULTS_DIR = os.path.join(MODULE_DIR, "results")
-    MODEL_SUBDIR = os.path.join(RESULTS_DIR, utils.misc.make_model_string(model_name, **model_kwargs))
-    os.makedirs(DATA_DIR, exist_ok=True)
-    os.makedirs(RESULTS_DIR, exist_ok=True)
-    os.makedirs(MODEL_SUBDIR, exist_ok=True)
- 
-    # create file_name_kwargs list that includes pmm_kwargs and sample information and create dir to store experiment in
-    pmm_string = utils.misc.make_pmm_string(pmm_kwargs, k_num_sample, sample_Ls)
-    EXPERIMENT_DIR = os.path.join(MODEL_SUBDIR, pmm_string)
-
-    # grab exact values if they exist
-    model_string = utils.misc.make_model_string(model_name, **model_kwargs)
-    file_path = os.join(DATA_DIR, "exact_eigenpairs__" + model_string + ".pkl")
-    try:
-        exact_Ls, exact_energies, _ = utils.io.load(file_path)
-        if predict_Ls is None: predict_Ls = exact_Ls
-    except FileNotFoundError:
-        if predict_Ls is None: raise FileNotFoundError("No exact eigenpair data was found. predict_Ls can't be None if no exact eigenpair data is preloaded")
-        print("[INFO] Exact eigenpair data not found. Computing exact eigenpair data now.")
-        exact_energies, _ = processing.process_exact.compute_exact_eigenpairs(model_name, predict_Ls, k_num_predict, **model_kwargs)
-        exact_Ls = predict_Ls
-
-    # normalize sample_Ls, predict_Ls, sample_energies
-    lmin, lmax, sample_Ls = utils.math.normalize(sample_Ls)
-    emin, emax, sample_energies = utils.math.normalize(sample_energies)
-    plmin, plmax, predict_Ls = utils.math.normalize(predict_Ls)
-
-    # define pmm instance
-    pmm_instance = pmm.PMM(**pmm_kwargs)
-
-    # load, run, predict pmm_state
-    if try_load and os.path.isdir(EXPERIMENT_DIR):
-        print("[INFO] Found PMM state to load. sample_Ls could be different from what's loaded.\n Set `try_load=False` if don't want to load a pmm state.")
-        path = os.path.join(EXPERIMENT_DIR, "pmm_state.pkl")
-        state = utils.io.load_state(path)
-        pmm_instance.set_state(state) 
-        _, losses = pmm_instance.train_pmm(epochs, store_loss)
-        predict_energies = pmm_instance.predict_energies(predict_Ls, k_num_predict)
-    else:
-        os.makedirs(EXPERIMENT_DIRS, exist_ok=True)
-        # compute sample energies
-        sample_energies, _ = processing.process_exact.compute_exact_eigenpairs(model_name, sample_Ls, k_num_sample, **model_kwargs)
-        losses, predict_energies = pmm_instance.run_pmm(sample_Ls, sample_energies, epochs, predict_Ls, k_num_predict, store_loss)
-
-    # save / don't save pmm
-    if save:
-        state = pmm_instance.get_state()
-        metadata = pmm_instance.get_metadata()
-
-        state_path = os.path.join(EXPERIMENT_DIR, "pmm_state.pkl")
-        metadata_path = os.path.join(EXPERIMENT_DIR, "metadata.json")
-        energies_path = os.path.join(EXPERIMENT_DIR, "pmm_predicted_eigenpairs")
-        plots_path = os.path.join(EXPERIMENT_DIR, "plots")
-        os.makedirs(plots_path, exist_ok=True)  
-
-        utils.io.save_eigenpairs(energies_path, predict_Ls, predict_energies, None)
-        utils.io.save_metadata(metadata_path, metadata)
-        utils.io.save_state(state_path, state)
-
-    # denormalize data
-    sample_Ls = utils.denormalize(lmin, lmax, sample_Ls)
-    sample_energies = utils.denormalize(emin, emax, sample_energies)
-    predict_energies = utils.denormalize(emin, emax, predict_energies)
-    predict_Ls = utils.denormalize(plmin, plmax, predict_Ls)
-
-    # plot predictions
-    Ls = {"sample" : sample_Ls, "exact" : exact_Ls, "prediction" : predict_Ls}
-    energies = {"sample" : sample_energies, "exact" : exact_energies, "prediction" : predict_energies}
-    linestyle = {"sample" : 'o', "exact" : '--', "predict" : '--'}
-    utils.plot.plot_eigenvalues_separately(plot_dir, Ls, energies, k_indices=list(range(k_num_predict)), show=True, save=save, **(plot_kwargs or {}))
-
-
-
-if __name__=="__main__":
+    main(model_name, model_kwargs, pmm_kwargs, k_num_sample, k_num_predict, epochs, store_loss, plot_kwargs, sample_Ls, predict_Ls, try_load, save)
     
     # load ising model
     """

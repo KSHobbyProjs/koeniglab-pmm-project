@@ -2,21 +2,23 @@ import os
 from .. import physics_models as pm
 from .. import utils
 
-# get directory where this file lives
-MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# get path for data/plots
-DATA_DIR = os.path.join(MODULE_DIR, "../../data")
-PLOT_DIR = os.path.join(DATA_DIR, "plots")
-
-os.makedirs(DATA_DIR, exist_ok=True)
-os.makedirs(PLOT_DIR, exist_ok=True)
-
 def load_exact_eigenpairs(model_name, Ls, k_num, **model_kwargs):
+    """
+    a wrapper to either load eigenpairs from a file or compute them if no such file exists.
+
+    grabs Ls and eigenpair from a pkl file if it exists; if not, computes eigenpair data at Ls. 
+    """
     model_string = utils.make_model_string(model_name, **model_kwargs)
+    file_path = os.join(utils.paths.DATA_DIR, "exact_eigenpairs__" + model_string + ".pkl") 
     try:
-        file_path = os.path.join(DATA_DIR, "exact_eigenpairs__" + model_string + ".pkl")
         exact_Ls, exact_energies, exact_states = utils.io.load_eigenpairs(file_path)
+        exact_energies = exact_energies[:, :k_num]
+        exact_states = exact_states[:, :k_num, :]
+    except FileNotFoundError:
+        if Ls is None: raise FileNotFoundError("No exact eigenpair data was found. `Ls` can't be None if no exact eigenpair data is preloaded")
+        exact_energies, exact_states = compute_exact_eigenpairs(model_name, Ls, k_num, **model_kwargs)
+        exact_Ls = Ls
+    return exact_Ls, exact_energies, exact_states
 
 # get eigenvectors from model
 def compute_exact_eigenpairs(model_name, Ls, k_num, **model_kwargs):
@@ -30,10 +32,14 @@ def compute_exact_eigenpairs(model_name, Ls, k_num, **model_kwargs):
 
 # process exact eigenpairs from physical models
 def process_exact_eigenpairs(model_name, Ls, k_num, plot_kwargs=None, **model_kwargs):
+    """
+    convenience wrapper for computing, storing, and plotting
+    exact eigenpairs from a model
+    """
     # make string to name data and plots
     model_string = "exact_eigenpairs__" + utils.misc.make_model_string(model_name, **model_kwargs)
-    file_path = os.path.join(DATA_DIR, model_string + ".pkl")
-    plot_dir = os.path.join(PLOT_DIR, model_string)
+    file_path = os.path.join(utils.paths.DATA_DIR, model_string + ".pkl")
+    plot_dir = os.path.join(utils.paths.PLOT_DIR, model_string)
 
     # grab values
     energies, eigenstates = compute_exact_eigenpairs(model_name, Ls, k_num, **model_kwargs)
