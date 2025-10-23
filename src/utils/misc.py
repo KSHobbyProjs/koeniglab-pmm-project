@@ -4,7 +4,7 @@ def make_model_string(model_name, **model_kwargs):
     return model_string
 
 def make_pmm_string(file_name_kwargs): 
-    key_order = ["dim", "num_primary", "k_num_sample", "sample_Ls",
+    key_order = ["pmm_name", "dim", "num_primary", "k_num_sample", "sample_Ls",
                  "num_secondary", "eta", "beta1", "beta2", 
                  "eps", "absmaxgrad", "l2", "mag", "seed"]
     pmm_string = "__".join(f"{k}_{file_name_kwargs[k]}" for k in key_order)

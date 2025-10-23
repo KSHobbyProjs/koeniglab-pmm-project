@@ -141,6 +141,7 @@ class PMM:
         # if data has been sampled but pmm hasn't been run
         final_loss = self._losses[-1] if len(self._losses) > 0 else 'not-run'
         metadata = {
+                "type" : self.__class__.__name__,
                 "dim" : self._dim,
                 "num_primary" : self._num_primary,
                 "k_num_sample" : self._sample_data["energies"].shape[1],

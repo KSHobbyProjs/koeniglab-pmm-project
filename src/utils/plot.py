@@ -45,8 +45,12 @@ def plot_eigenvalues(path, Ls, energies, k_num=0, show=False, save=False, **kwar
     # detect if Ls and Es are dictionaries and plot each energy level
     if isinstance(Ls, dict) and isinstance(energies, dict):
         for key in Ls:
+            # because of numpy subtleties, we have to re-arrify this or face consequences
+            energy_array = np.array(energies[key], dtype=np.float64)
+            num_states = energy_array.shape[1]
             for k in k_indices:
-                ax.plot(Ls[key], energies[key][:, k], linestyle=linestyle[key], marker=markerstyle[key], label=f"{key} : state {k}")
+                if k < num_states:
+                    ax.plot(Ls[key], energy_array[:, k], linestyle=linestyle[key], marker=markerstyle[key], label=f"{key} : state {k}")
     else:
         for k in k_indices:
             ax.plot(Ls, energies[:, k], linestyle=linestyle, label=f'state {k}')
@@ -132,5 +136,3 @@ def _get_markerstyle(Ls, user_style):
         return {key : user_style for key in Ls}
     return user_style
 # ---------------------------------------------------------------------------------------------------
-
-

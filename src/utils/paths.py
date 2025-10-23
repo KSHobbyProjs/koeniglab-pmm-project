@@ -10,7 +10,7 @@ os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(DATA_PLOTS_DIR, exist_ok=True) 
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
-def experiment_subdir(model_name, model_kwargs, pmm_kwargs, k_num_sample, sample_Ls):
+def experiment_subdir(model_name, pmm_name, model_kwargs, pmm_kwargs, k_num_sample, sample_Ls):
     """
     Return the directory in results for the specific model and experiment
     """
@@ -21,6 +21,7 @@ def experiment_subdir(model_name, model_kwargs, pmm_kwargs, k_num_sample, sample
     file_name_kwargs = pmm_kwargs.copy()
     file_name_kwargs["k_num_sample"] = k_num_sample
     file_name_kwargs["sample_Ls"] = f"min-{min(sample_Ls)}--max-{max(sample_Ls)}--len-{len(sample_Ls)}"
+    file_name_kwargs["pmm_name"] = pmm_name
     pmm_string = misc.make_pmm_string(file_name_kwargs)
 
     experiment_subdir = os.path.join(model_subdir, pmm_string)

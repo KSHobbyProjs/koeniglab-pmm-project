@@ -3,21 +3,6 @@ from ..algorithms import pmm
 import os
 from . import process_exact
 
-def process_pmm_predicted_eigenpairs(
-        model_name,
-        sample_Ls,
-        target_Ls,
-        dim,
-        epochs,
-        k_num_sample=1,
-        k_num_predict=1,
-        store_loss=100,
-        plot_kwargs=None,
-        model_kwargs=None,
-        **pmm_kwargs
-        ):
-    raise NotImplementedError
-
 def normalize_data(sample_Ls, sample_energies, predict_Ls):
     lmin, lmax, sample_Ls = utils.math.normalize(sample_Ls)
     emin, emax, sample_energies = utils.math.normalize(sample_energies)
@@ -32,9 +17,20 @@ def denormalize_data(bounds, sample_Ls, sample_energies, predict_Ls, predict_ene
     predict_energies = utils.math.denormalize(emin, emax, predict_energies)
     return sample_Ls, sample_energies, predict_Ls, predict_energies
 
-def initialize_pmm(**pmm_kwargs):
-    pmm_instance = pmm.PMM(**pmm_kwargs)
+def initialize_pmm(pmm_name, **pmm_kwargs):
+    PMMClass = getattr(pmm, pmm_name)
+    pmm_instance = PMMClass(**pmm_kwargs)
     return pmm_instance
+
+def sample_pmm(pmm_instance, sample_Ls, sample_energies):
+    pmm_instance.sample_energies(sample_Ls, sample_energies)
+
+def train_pmm(pmm_instance, epochs, store_loss):
+    pmm_instance.train_pmm(epochs, store_loss)
+
+def predict_pmm(pmm_instance, predict_Ls, k_num_predict):
+    predict_energies = pmm_instance.predict_energies(predict_Ls, k_num_predict)
+    return predict_energies
 
 def run_or_load_pmm(experiment_dir, pmm_instance, model_name, model_kwargs, sample_Ls, predict_Ls, k_num_sample, k_num_predict, epochs, store_loss, try_load):
     if try_load and os.path.isdir(experiment_dir):

@@ -4,9 +4,9 @@ import numpy as np
 from src import utils
 from src import processing
 
-def main(model_name, model_kwargs, pmm_kwargs, k_num_sample, k_num_predict, epochs, store_loss, plot_kwargs, sample_Ls, predict_Ls, try_load, save):
+def main(model_name, pmm_name, model_kwargs, pmm_kwargs, k_num_sample, k_num_predict, epochs, store_loss, plot_kwargs, sample_Ls, predict_Ls, try_load, save):
     # create directory to store experiment in
-    EXPERIMENT_DIR = utils.paths.experiment_subdir(model_name, model_kwargs, pmm_kwargs, k_num_sample, sample_Ls)
+    EXPERIMENT_DIR = utils.paths.experiment_subdir(model_name, pmm_name, model_kwargs, pmm_kwargs, k_num_sample, sample_Ls)
     PLOT_DIR = os.path.join(EXPERIMENT_DIR, "plots")
 
     # grab exact eigenpair data if it exists, otherwise load it. if predict_Ls is None, assume user wants to take predictions at exact Ls.
@@ -16,13 +16,14 @@ def main(model_name, model_kwargs, pmm_kwargs, k_num_sample, k_num_predict, epoc
     print("Exact eigenpair data grabbed.")
 
     # define pmm instance
-    pmm_instance = processing.process_pmm.initialize_pmm(**pmm_kwargs)
+    pmm_instance = processing.process_pmm.initialize_pmm(pmm_name, **pmm_kwargs)
 
     # run pmm, computing normalization bounds, losses, sample_Ls, sample_energies, and predict_energies
     print("Training PMM and predicting eigenvalues.")
     bounds, losses, sample_Ls, sample_energies, predict_energies = processing.process_pmm.run_or_load_pmm(EXPERIMENT_DIR, pmm_instance, model_name, model_kwargs,
                                                                            sample_Ls, predict_Ls, k_num_sample, k_num_predict, epochs, store_loss,
                                                                            try_load)
+
     print(f"Finished training PMM. Final loss: {losses[-1]}.")
     # save / don't save pmm
     if save:
@@ -41,9 +42,10 @@ def main(model_name, model_kwargs, pmm_kwargs, k_num_sample, k_num_predict, epoc
 
 if __name__=="__main__":
     model_name = "gaussian.Gaussian1d"
+    pmm_name = "PMM"
     model_kwargs = {"N" : 128, "V0" : -4, "R" : 2}
     pmm_kwargs = {
-            "dim" : 6,
+            "dim" : 2,
             "num_primary" : 2,
             "num_secondary" : 0,
             "eta" : 1e-2,
@@ -53,18 +55,20 @@ if __name__=="__main__":
             "absmaxgrad" : 1e3,
             "l2" : 0.0,
             "mag" : 1e-1,
-            "seed" : 153
+            "seed" : 135 #153
             }
     k_num_sample = 1
     k_num_predict = 1
-    epochs = 0
+    epochs = 20000
     store_loss = 100
     plot_kwargs = {"xlabel" : "System Length", 
                    "title" : "Gaussian1d (V0=-4, R=2)"}
-
-    sample_Ls = 5 + np.linspace(0, 1, 20)**1.5 * (20 - 5)
+    
+    Lmin, Lmax = 5, 15
+    Llen = 20
+    sample_Ls = Lmin + np.linspace(0, 1, Llen)**1.5 * (Lmax - Lmin)
     predict_Ls = None
     try_load = True
-    save = True
+    save = False
 
-    main(model_name, model_kwargs, pmm_kwargs, k_num_sample, k_num_predict, epochs, store_loss, plot_kwargs, sample_Ls, predict_Ls, try_load, save)
+    main(model_name, pmm_name, model_kwargs, pmm_kwargs, k_num_sample, k_num_predict, epochs, store_loss, plot_kwargs, sample_Ls, predict_Ls, try_load, save)
