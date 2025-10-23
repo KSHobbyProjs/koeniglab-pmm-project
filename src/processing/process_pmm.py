@@ -32,6 +32,28 @@ def predict_pmm(pmm_instance, predict_Ls, k_num_predict):
     predict_energies = pmm_instance.predict_energies(predict_Ls, k_num_predict)
     return predict_energies
 
+def load_or_sample_pmm(experiment_dir, pmm_instance, model_name, model_kwargs, sample_Ls, try_load):
+    if try_load and os.path.isdir(experiment_dir):
+        print("[INFO] Found PMM state to load. `sample_Ls` might be different from what's loaded. \n set `try_load=False` if you don't want to load a pmm state.")
+        bounds, sample_Ls, sample_energies = _load_pmm(pmm_instance, experiment_dir)
+    else:
+        print("[INFO] No PMM loaded. Training new PMM now.")
+        bounds, sample_energies = _sample_pmm(pmm_instance, experiment_dir)
+
+def _load_pmm(pmm_instance, experiment_dir, sample_Ls):
+    # load state data and normalization data
+    state_path = os.path.join(experiment_dir, "pmm_state.pkl")
+    bounds_path = os.path.join(experiment_dir, "normalization_metadata.json")
+
+    # load state and normalization data
+    state = utils.io.load_state(state_path)
+    bounds = utils.io.load_normalization_metadata(bounds_path)
+
+    # grab sample_Ls and sample_energies
+    data = state["data"]
+    sample_Ls, sample_energies = data["Ls"], data["energies"]
+    
+
 def run_or_load_pmm(experiment_dir, pmm_instance, model_name, model_kwargs, sample_Ls, predict_Ls, k_num_sample, k_num_predict, epochs, store_loss, try_load):
     if try_load and os.path.isdir(experiment_dir):
         print("[INFO] Found PMM state to load. `sample_Ls` might be different from what's loaded. \n set `try_load=False` if you don't want to load a pmm state.")
@@ -88,6 +110,7 @@ def _train_new_pmm(model_name, model_kwargs, pmm_instance, sample_Ls, k_num_samp
     return bounds, losses, sample_energies, predict_energies
 
 def save_pmm(experiment_dir, pmm_instance, bounds, sample_Ls, predict_Ls, predict_energies):
+    sampleLs_hash = utils.misc.get_hash_from_sampleLs(sample_Ls)
     state = pmm_instance.get_state()
     metadata = pmm_instance.get_metadata()
     metadata["sample_Ls"] = f"min-{min(sample_Ls)}--max-{max(sample_Ls)}--len-{len(sample_Ls)}",

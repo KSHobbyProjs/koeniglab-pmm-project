@@ -14,13 +14,13 @@ def experiment_subdir(model_name, pmm_name, model_kwargs, pmm_kwargs, k_num_samp
     """
     Return the directory in results for the specific model and experiment
     """
-
+    sampleLs_hash = misc.create_hash_from_sampleLs(sample_Ls))
     model_string = misc.make_model_string(model_name, **model_kwargs)
     model_subdir = os.path.join(RESULTS_DIR, model_string)
     
     file_name_kwargs = pmm_kwargs.copy()
     file_name_kwargs["k_num_sample"] = k_num_sample
-    file_name_kwargs["sample_Ls"] = f"min-{min(sample_Ls)}--max-{max(sample_Ls)}--len-{len(sample_Ls)}"
+    file_name_kwargs["sample_Ls"] = f"min-{min(sample_Ls)}--max-{max(sample_Ls)}--len-{len(sample_Ls)}--hash-{sampleLs_hash}"
     file_name_kwargs["pmm_name"] = pmm_name
     pmm_string = misc.make_pmm_string(file_name_kwargs)
 
