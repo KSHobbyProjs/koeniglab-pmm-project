@@ -14,7 +14,7 @@ def experiment_subdir(model_name, pmm_name, model_kwargs, pmm_kwargs, k_num_samp
     """
     Return the directory in results for the specific model and experiment
     """
-    sampleLs_hash = misc.create_hash_from_sampleLs(sample_Ls))
+    sampleLs_hash = misc.create_hash_from_sampleLs(sample_Ls)
     model_string = misc.make_model_string(model_name, **model_kwargs)
     model_subdir = os.path.join(RESULTS_DIR, model_string)
     

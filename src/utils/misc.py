@@ -1,4 +1,5 @@
 import hashlib
+import numpy as np
 
 def make_model_string(model_name, **model_kwargs):
     class_name = model_name.split(".", 1)[1]

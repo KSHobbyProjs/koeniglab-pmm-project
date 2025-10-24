@@ -3,8 +3,8 @@
   "dim": 2,
   "num_primary": 2,
   "k_num_sample": 1,
-  "epochs": 20000,
-  "final_loss": 0.00019952965555884925,
+  "epochs": 25000,
+  "final_loss": 0.0001989845829481999,
   "num_secondary": 0,
   "eta": 0.01,
   "beta1": 0.9,
@@ -13,9 +13,9 @@
   "absmaxgrad": 1000.0,
   "l2": 0.0,
   "mag": 0.1,
-  "seed": 153,
+  "seed": 135,
   "sample_Ls": [
-    "min-5.0--max-20.0--len-20"
+    "min-5.0--max-20.0--len-20--hash-d7fbc7"
   ],
-  "data_created": "2025-10-23T11:10:48.495153"
+  "data_created": "2025-10-23T19:46:32.717877"
 }

@@ -3,117 +3,63 @@ from ..algorithms import pmm
 import os
 from . import process_exact
 
-def normalize_data(sample_Ls, sample_energies, predict_Ls):
-    lmin, lmax, sample_Ls = utils.math.normalize(sample_Ls)
-    emin, emax, sample_energies = utils.math.normalize(sample_energies)
-    plmin, plmax, predict_Ls = utils.math.normalize(predict_Ls)
-    return (lmin, lmax, emin, emax, plmin, plmax), sample_Ls, sample_energies, predict_Ls
-
-def denormalize_data(bounds, sample_Ls, sample_energies, predict_Ls, predict_energies):
-    lmin, lmax, emin, emax, plmin, plmax = bounds
-    sample_Ls = utils.math.denormalize(lmin, lmax, sample_Ls)
-    sample_energies = utils.math.denormalize(emin, emax, sample_energies)
-    predict_Ls = utils.math.denormalize(plmin, plmax, predict_Ls)
-    predict_energies = utils.math.denormalize(emin, emax, predict_energies)
-    return sample_Ls, sample_energies, predict_Ls, predict_energies
-
 def initialize_pmm(pmm_name, **pmm_kwargs):
     PMMClass = getattr(pmm, pmm_name)
     pmm_instance = PMMClass(**pmm_kwargs)
     return pmm_instance
 
-def sample_pmm(pmm_instance, sample_Ls, sample_energies):
-    pmm_instance.sample_energies(sample_Ls, sample_energies)
-
-def train_pmm(pmm_instance, epochs, store_loss):
-    pmm_instance.train_pmm(epochs, store_loss)
-
-def predict_pmm(pmm_instance, predict_Ls, k_num_predict):
-    predict_energies = pmm_instance.predict_energies(predict_Ls, k_num_predict)
-    return predict_energies
-
-def load_or_sample_pmm(experiment_dir, pmm_instance, model_name, model_kwargs, sample_Ls, try_load):
-    if try_load and os.path.isdir(experiment_dir):
-        print("[INFO] Found PMM state to load. `sample_Ls` might be different from what's loaded. \n set `try_load=False` if you don't want to load a pmm state.")
-        bounds, sample_Ls, sample_energies = _load_pmm(pmm_instance, experiment_dir)
-    else:
-        print("[INFO] No PMM loaded. Training new PMM now.")
-        bounds, sample_energies = _sample_pmm(pmm_instance, experiment_dir)
-
-def _load_pmm(pmm_instance, experiment_dir, sample_Ls):
-    # load state data and normalization data
-    state_path = os.path.join(experiment_dir, "pmm_state.pkl")
-    bounds_path = os.path.join(experiment_dir, "normalization_metadata.json")
-
-    # load state and normalization data
-    state = utils.io.load_state(state_path)
-    bounds = utils.io.load_normalization_metadata(bounds_path)
-
-    # grab sample_Ls and sample_energies
-    data = state["data"]
-    sample_Ls, sample_energies = data["Ls"], data["energies"]
-    
-
-def run_or_load_pmm(experiment_dir, pmm_instance, model_name, model_kwargs, sample_Ls, predict_Ls, k_num_sample, k_num_predict, epochs, store_loss, try_load):
-    if try_load and os.path.isdir(experiment_dir):
-        print("[INFO] Found PMM state to load. `sample_Ls` might be different from what's loaded. \n set `try_load=False` if you don't want to load a pmm state.")
-        bounds, losses, sample_Ls, sample_energies, predict_energies = _load_and_run_pmm(
-                pmm_instance, experiment_dir, epochs, store_loss, predict_Ls, k_num_predict)
-    else:
-        print("[INFO] No PMM loaded. Training new PMM now.")
-        bounds, losses, sample_energies, predict_energies = _train_new_pmm(
-                model_name, model_kwargs, pmm_instance, sample_Ls, k_num_sample, epochs, predict_Ls, k_num_predict, store_loss)
-    return bounds, losses, sample_Ls, sample_energies, predict_energies
-
-def _load_and_run_pmm(pmm_instance, experiment_dir, epochs, store_loss, predict_Ls, k_num_predict):
-    # load state data and normalization data
-    state_path = os.path.join(experiment_dir, "pmm_state.pkl")
-    bounds_path = os.path.join(experiment_dir, "normalization_metadata.json")
-
-    # load state and normalization data
-    state = utils.io.load_state(state_path)
-    bounds = utils.io.load_normalization_metadata(bounds_path)
-
-    # grab sample_Ls and sample_energies
-    data = state["data"]
-    sample_Ls, sample_energies = data["Ls"], data["energies"]
-    
-    # set pmm_instance state to loaded state and run pmm
-    pmm_instance.set_state(state)
-    if epochs > 0: 
-        pmm_instance.train_pmm(epochs, store_loss)
-
-    # with pmm trained, predict energies (normalize predict_Ls first)
-    # we change the bounds in case predict_Ls is different from what it was when loading the state
-    plmin, plmax, predict_Ls = utils.math.normalize(predict_Ls)
-    bounds = (bounds[0], bounds[1], bounds[2], bounds[3], plmin, plmax)
-    predict_energies = pmm_instance.predict_energies(predict_Ls, k_num_predict)
-    losses = pmm_instance.get_state()["losses"]
-
-    # denormalize data
-    sample_Ls, sample_energies, predict_Ls, predict_energies = denormalize_data(
-            bounds, sample_Ls, sample_energies, predict_Ls, predict_energies)
-    return bounds, losses, sample_Ls, sample_energies, predict_energies
-
-def _train_new_pmm(model_name, model_kwargs, pmm_instance, sample_Ls, k_num_sample, epochs, predict_Ls, k_num_predict, store_loss):
+def sample_pmm(pmm_instance, sample_Ls, model_name, k_num_sample, **model_kwargs):
     # compute sample energies from sample_Ls
     sample_energies, _ = process_exact.compute_exact_eigenpairs(model_name, sample_Ls, k_num_sample, **model_kwargs)
 
     # normalize data before training
-    bounds, sample_Ls, sample_energies, predict_Ls = normalize_data(sample_Ls, sample_energies, predict_Ls)
+    _, _, normed_sample_Ls = utils.math.normalize(sample_Ls)
+    emin, emax, normed_sample_energies = utils.math.normalize(sample_energies)
+    energy_norm_bounds = (emin, emax)
+    
+    # sample pmm
+    pmm_instance.sample_energies(normed_sample_Ls, normed_sample_energies)
+    return energy_norm_bounds, sample_energies
 
-    # run pmm
-    losses, predict_energies = pmm_instance.run_pmm(sample_Ls, sample_energies, epochs, predict_Ls, k_num_predict, store_loss)
-    # denormalize data
-    sample_Ls, sample_energies, predict_Ls, predict_energies = denormalize_data(
-            bounds, sample_Ls, sample_energies, predict_Ls, predict_energies)
-    return bounds, losses, sample_energies, predict_energies
+def load_pmm(pmm_instance, experiment_dir):
+    # load state data and normalization data
+    state_path = os.path.join(experiment_dir, "pmm_state.pkl")
+    bounds_path = os.path.join(experiment_dir, "normalization_metadata.json")
+
+    # load state and normalization data
+    state = utils.io.load_state(state_path)
+    energy_norm_bounds = utils.io.load_normalization_metadata(bounds_path)
+
+    # grab sample_Ls and sample_energies
+    data = state["data"]
+    _, sample_energies = data["Ls"], data["energies"]
+    sample_energies = utils.math.denormalize(*energy_norm_bounds, sample_energies)
+
+    # set pmm state
+    pmm_instance.set_state(state)
+    return energy_norm_bounds, sample_energies
+
+def train_pmm(pmm_instance, epochs, store_loss):
+    pmm_instance.train_pmm(epochs, store_loss)
+    losses = pmm_instance.get_state()["losses"]
+    return losses
+
+def predict_pmm(pmm_instance, predict_Ls, k_num_predict, energy_norm_bounds):
+    # normalize predict_Ls for prediction in PMM
+    _, _, predict_Ls = utils.math.normalize(predict_Ls)
+
+    # grab predictions from PMM
+    predict_energies = pmm_instance.predict_energies(predict_Ls, k_num_predict)
+
+    # denormalize predictions
+    predict_energies = utils.math.denormalize(*energy_norm_bounds, predict_energies)
+    return predict_energies
 
 def save_pmm(experiment_dir, pmm_instance, bounds, sample_Ls, predict_Ls, predict_energies):
-    sampleLs_hash = utils.misc.get_hash_from_sampleLs(sample_Ls)
+    sampleLs_hash = utils.misc.create_hash_from_sampleLs(sample_Ls)
     state = pmm_instance.get_state()
     metadata = pmm_instance.get_metadata()
-    metadata["sample_Ls"] = f"min-{min(sample_Ls)}--max-{max(sample_Ls)}--len-{len(sample_Ls)}",
+    metadata["sample_Ls"] = f"min-{min(sample_Ls)}--max-{max(sample_Ls)}--len-{len(sample_Ls)}--hash-{sampleLs_hash}",
 
     # define paths
     state_path = os.path.join(experiment_dir, "pmm_state.pkl")
