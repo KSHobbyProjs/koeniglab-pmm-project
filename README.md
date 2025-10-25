@@ -10,7 +10,7 @@ The Parametric Matrix Model (PMM) provides a way to approximate the spectral beh
 
 ## Background and Motivation
 
-In many physical systems, the eigenvalues of a Hamiltonian \( H(\lambda) \) evolve continuously with respect to a tunable parameter \( \lambda \).  
+In many physical systems, the eigenvalues of a Hamiltonian $ H(\lambda) $ evolve continuously with respect to a tunable parameter \( \lambda \).  
 Computing spectra across a dense grid of parameter values can be computationally expensive. The **Parametric Matrix Model (PMM)** aims to learn an approximate functional form of \( H(\lambda) \) from a small number of samples.
 
 Given training data consisting of eigenpairs at sampled parameter values,
