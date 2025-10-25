@@ -15,7 +15,7 @@ Computing spectra across a dense grid of parameter values can be computationally
 
 PMMs were originally motivated by another computational technique: eigenvector continuation (EC). In EC, one faces the same problem: explicitly diagonalizing the Hamiltonian, which is often massive, for a dense grid of parameter 
 values is often too expensive. Instead, one can diagonalize the Hamiltonian at a few parameter values (sample points), and construct a subspace from the eigenvectors at those parameter values, $M=\text{span}(\lbrace v_i\rbrace_i)\subset\mathcal{H}$. 
-Then, one can project the Hamiltonian onto this subspace to get a generalized eigenvalue problem $H_{\text{proj}}v' = ESv'$ where $(H_\text{proj})_{ij}=\langle v_i|H|v_j\rangle$, $S_{ij}=\langle v_i | v_j\rangle$.
+Then, one can project the Hamiltonian onto this subspace to get a generalized eigenvalue problem $H_{\text{proj}}v' = ESv'$ where $$(H_\text{proj})_{ij}=\langle v_i|H|v_j\rangle$$, $S_{ij}=\langle v_i | v_j\rangle$.
 
 Given training data consisting of eigenpairs at sampled parameter values,
 $$
