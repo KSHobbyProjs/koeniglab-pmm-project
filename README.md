@@ -17,8 +17,10 @@ PMMs were originally motivated by another computational technique: eigenvector c
 values is often too expensive. Instead, one can diagonalize the Hamiltonian at a few parameter values (sample points), and construct a subspace from the eigenvectors at those parameter values, $M=\text{span}(\lbrace v_i\rbrace_i)\subset\mathcal{H}$. 
 Then, one can project the Hamiltonian onto this subspace to get a generalized eigenvalue problem $H_{\text{proj}}v' = ESv'$ where $H_{\text{proj}}^_{ij}=\langle v_i|H|v_j\rangle$, $S_{ij}=\langle v_i | v_j\rangle$, and $v'$ is a coordinate vector
 in the basis of the sample eigenvectors. This assumes that all of the eigenvectors at all parameter values of interest lie in the span of the sample eigenvectors. This is a reasonable assumption if one only wishes to compute the first few eigenvectors
-at each parameter value: if $H$ is analytic in the parameter, then so are its eigenvalues, and it's reasonable to assume that the first few eigenvectors only explore a small subset of Hilbert space as you vary the parameter. Further, \
-$$\psi'(\lambda) = \sum_n (\lambda-\lambda_0)^n \frac{\psi^{(n)}(\lambda_0)}{n!}$$ \
+at each parameter value: if $H$ is analytic in the parameter, then so are its eigenvalues, and it's reasonable to assume that the first few eigenvectors only explore a small subset of Hilbert space as you vary the parameter. Further,
+```math
+\psi'(\lambda) = \sum_n (\lambda-\lambda_0)^n \frac{\psi^{(n)}(\lambda_0)}{n!}
+```
 
 Given training data consisting of eigenpairs at sampled parameter values,\
 $$H(\lambda_i) \psi_n^{(i)} = E_n^{(i)} \psi_n^{(i)},$$\
