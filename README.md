@@ -17,7 +17,7 @@ PMMs were originally motivated by another computational technique: **eigenvector
 values is too expensive. Instead, one diagonalizes the Hamiltonian at a few parameter values (sample points), and constructs a subspace from the eigenvectors at those points: $M=\text{span}(\lbrace v_i\rbrace_i)\subset\mathcal{H}$. 
 Then, one projects the exact Hamiltonian at other parameter values onto this subspace to obtain a generalized eigenvalue problem: $H_{\text{proj}}v' = ESv'$ where 
 ```math
-H_{\text{proj}}^_{ij}=\langle v_i|H|v_j\rangle$,
+(H_{\text{proj}})_{ij}=\langle v_i|H|v_j\rangle$,
 S_{ij}=\langle v_i | v_j\rangle,
 ```
 and $v'$ is a coordinate vector in the basis of the sample eigenvectors. This generalized eigenvalue problem has a much smaller dimension (its dimension is just the number of sample vectors taken), and is much easier to solve, than the parent eigenvalue problem.
