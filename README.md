@@ -15,8 +15,12 @@ Computing spectra across a dense grid of parameter values can be computationally
 
 PMMs were originally motivated by another computational technique: **eigenvector continuation (EC)**. In EC, one faces the same problem: explicitly diagonalizing the Hamiltonian -- which is often massive -- for a dense grid of parameter 
 values is too expensive. Instead, one diagonalizes the Hamiltonian at a few parameter values (sample points), and constructs a subspace from the eigenvectors at those points: $M=\text{span}(\lbrace v_i\rbrace_i)\subset\mathcal{H}$. 
-Then, one projects the exact Hamiltonian at other parameter values onto this subspace to obtain a generalized eigenvalue problem: $H_{\text{proj}}v' = ESv'$ where $H_{\text{proj}}^_{ij}=\langle v_i|H|v_j\rangle$, $S_{ij}=\langle v_i | v_j\rangle$, and $v'$ is a coordinate vector
-in the basis of the sample eigenvectors. This generalized eigenvalue problem has a much smaller dimension (its dimension is just the number of sample vectors taken), and is much easier to solve, than the parent eigenvalue problem.
+Then, one projects the exact Hamiltonian at other parameter values onto this subspace to obtain a generalized eigenvalue problem: $H_{\text{proj}}v' = ESv'$ where 
+```math
+H_{\text{proj}}^_{ij}=\langle v_i|H|v_j\rangle$,
+S_{ij}=\langle v_i | v_j\rangle,
+```
+and $v'$ is a coordinate vector in the basis of the sample eigenvectors. This generalized eigenvalue problem has a much smaller dimension (its dimension is just the number of sample vectors taken), and is much easier to solve, than the parent eigenvalue problem.
 
 This approach assumes that all of the eigenvectors at all parameter values of interest lie (approximately) in the span of the sample eigenvectors. This assumption is reasonable if one is interested only in the lowest few eigenstates: when $H$ is analytic in $\lambda$, 
 so are its eigenvalues and eigenvectors. Expanding an eigenvector in a Taylor series about some reference point $\lambda_0$, 
