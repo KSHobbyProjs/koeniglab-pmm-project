@@ -118,7 +118,8 @@ python -m src.main \
 ```
 
 ### Example Arguments
-- `--model_name`: Which exact model to use (`gaussian`, etc.)
+- `--model_name`: Which exact model to use (`gaussian.Gaussian1d`, etc.)
+- `--pmm_name`: Which PMM model to use (`PMM`, etc.) 
 - `--sample_Ls`: Parameter values at which exact data is computed
 - `--predict_Ls`: Parameter values where predictions are evaluated
 - `--epochs`: Number of PMM training iterations
@@ -127,21 +128,22 @@ python -m src.main \
 
 All results are automatically stored under:
 ```
-data/experiments/<model_name>/<timestamp>/
+results/<experiment directory>/
 ```
 
 ---
 
 ## Example Workflow
 
-1. Compute or load exact spectra using `process_exact`.
-2. Train a PMM using a small subset of sampled parameter values.
-3. Predict eigenvalues at unseen parameters.
-4. Plot results to compare PMM predictions vs. exact data.
+1. Load all energy data from all physics models by running `get_exact_data.sh` (optional).
+2. Load all EC predictions by running `get_ec_predicted_data.sh` (for demonstration purposes).
+3. Train a PMM using a small subset of sampled parameter values.
+4. Predict eigenvalues at unseen parameters.
+5. Plot results to compare PMM predictions vs. exact data.
 
 Example plotting utilities:
 ```python
-from src.utils.plotting import plot_spectra, plot_loss_curve
+from src.utils.plotting import plot_eigenvalues, plot_loss
 ```
 
 ---
@@ -149,17 +151,23 @@ from src.utils.plotting import plot_spectra, plot_loss_curve
 ## Extending the Framework
 
 To add a new model:
-1. Create a new file under `src/models/` (e.g., `double_well.py`).
-2. Implement functions:
+1. Create a new file under `src/physics_models/` (e.g., `double_well.py`).
+2. Create a class within this file that subclasses `BaseModel`.
+3. Change
    ```python
-   def sample(L, dim): ...
-   def exact_eigenpairs(L, dim): ...
+   def construct_H(self, L): ...
    ```
-3. Register your model name in `process_exact`.
+   so that it constructs the Hamiltonian for your model as it depends on the parameter $L$.
+4. If you want to pre-load exact eigenvalue data for your model, add a line to `src/scripts/get_exact_data.py`.
 
 To add a new PMM variant:
-1. Add a new class under `src/algorithms/pmm/`.
-2. Modify `process_pmm.py` to reference your new model by name.
-
+1. Add a new class under `src/algorithms/pmm.py` that subclasses `PMM`.
+2. Modify
+   ```python
+   def loss(params, Ls, energies, l2): ...
+   def get_basis(Ls, num_primary): ...
+   ```
+   to change how the loss is computed (default is mean squared error between predicted eigenvalues and sample eigenvalues,
+   and how the basis is constructed (default is affine $H_\theta=A_\theta+\lambda B_\theta$).
 ---
 
