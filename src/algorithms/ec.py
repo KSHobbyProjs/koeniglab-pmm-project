@@ -55,9 +55,10 @@ class EC:
         """
 
         self._model = model
-
-        self._sample_vectors = None
+    
         self._sample_Ls = None
+        self._sample_energies = None
+        self._sample_vectors = None
         self._S = None
 
 
@@ -91,8 +92,9 @@ class EC:
         """
 
         sample_Ls = np.atleast_1d(sample_Ls)
-        _, eigvecs = self._model.get_eigenvectors(sample_Ls, k_num)
+        energies, eigvecs = self._model.get_eigenvectors(sample_Ls, k_num)
         eigvecs = eigvecs.reshape(-1, eigvecs.shape[2])
+        self._sample_energies = energies
         self._sample_vectors = eigvecs
         self._S = eigvecs.conj() @ eigvecs.T
         self._sample_Ls = sample_Ls
@@ -191,6 +193,23 @@ class EC:
         self._sample_vectors = temp_vecs
         self._S = temp_S
         return eigenvalues, eigenvectors
+
+    def get_state(self):
+        state = {
+                "model" : self._model,
+                "sample_Ls" : self._sample_Ls,
+                "sample_energies" : self._sample_energies,
+                "sample_vectors" : self._sample_vectors,
+                "S" : self._S
+                }
+        return state
+
+    def set_state(self, state):
+        self._model = state["model"]
+        self._sample_Ls = state["sample_Ls"]
+        self._sample_energies = state["sample_energies"]
+        self._sample_vectors = state["sample_vectors"]
+        self._S = state["S"]
 
     @classmethod
     def _get_base_coods(cls, N):

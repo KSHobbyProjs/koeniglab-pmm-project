@@ -84,6 +84,21 @@ def plot_eigenvalues_separately(directory_name, Ls, energies, k_indices=[0, 1, 2
     fig_path = os.path.join(directory_name, "combined.png")
     plot_eigenvalues(fig_path, Ls, energies, k_num=k_indices, show=show, save=save, **kwargs)
 
+def plot_compare_energies(plot_dir, sample_Ls, exact_Ls, predict_Ls, sample_energies, exact_energies, predict_energies, save=False, show=False, **plot_kwargs):
+    k_num_predict = predict_energies.shape[1]
+    Ls = {"sample" : sample_Ls, "exact" : exact_Ls, "prediction" : predict_Ls}
+    energies = {"sample" : sample_energies, "exact" : exact_energies, "prediction" : predict_energies}
+    linestyle = {"sample" : 'None', "exact" : '-', "prediction" : '--'}
+    markerstyle= {"sample" : 'o', "exact" : 'None', "prediction" : 'None'}
+    plot_kwargs = plot_kwargs.copy() if plot_kwargs else {}
+    plot_kwargs["linestyle"] = linestyle
+    plot_kwargs["markerstyle"] = markerstyle
+    if k_num_predict == 1:
+        path = os.path.join(plot_dir, "state_0.png")
+        plot_eigenvalues(path, Ls, energies, k_num_predict - 1, show=show, save=save, **plot_kwargs)
+    else:
+        plot_eigenvalues_separately(plot_dir, Ls, energies, k_indices=list(range(k_num_predict)), show=show, save=save, **plot_kwargs)
+
 def plot_loss(directory_name, loss, store_loss, show=False, save=False):
     path = os.path.join(directory_name, "loss.png")
     fig, ax = plt.subplots()

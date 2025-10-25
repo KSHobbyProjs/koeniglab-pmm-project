@@ -4,11 +4,15 @@ from . import misc
 MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(MODULE_DIR, "../../data")
 DATA_PLOTS_DIR = os.path.join(DATA_DIR, "plots")
+EC_DIR = os.path.join(MODULE_DIR, "../../ec_data")
+EC_PLOTS_DIR = os.path.join(EC_DIR, "plots")
 RESULTS_DIR = os.path.join(MODULE_DIR, "../../results")
 
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(DATA_PLOTS_DIR, exist_ok=True) 
 os.makedirs(RESULTS_DIR, exist_ok=True)
+os.makedirs(EC_DIR, exist_ok=True)
+os.makedirs(EC_PLOTS_DIR, exist_ok=True)
 
 def experiment_subdir(model_name, pmm_name, model_kwargs, pmm_kwargs, k_num_sample, sample_Ls):
     """

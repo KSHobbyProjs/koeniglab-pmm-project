@@ -40,7 +40,8 @@ def load_pmm(pmm_instance, experiment_dir):
     return energy_norm_bounds, sample_energies
 
 def train_pmm(pmm_instance, epochs, store_loss):
-    pmm_instance.train_pmm(epochs, store_loss)
+    if epochs > 0:
+        pmm_instance.train_pmm(epochs, store_loss)
     losses = pmm_instance.get_state()["losses"]
     return losses
 
@@ -72,22 +73,12 @@ def save_pmm(experiment_dir, pmm_instance, bounds, sample_Ls, predict_Ls, predic
     utils.io.save_normalization_metadata(norm_metadata_path, *bounds)
     utils.io.save_state(state_path, state)
 
-def make_all_plots(plot_dir, sample_Ls, exact_Ls, predict_Ls, sample_energies, exact_energies, predict_energies, loss, store_loss, plot_kwargs=None, save=False, show=False):
-    k_num_predict = predict_energies.shape[1]
-    Ls = {"sample" : sample_Ls, "exact" : exact_Ls, "prediction" : predict_Ls}
-    energies = {"sample" : sample_energies, "exact" : exact_energies, "prediction" : predict_energies}
-    linestyle = {"sample" : 'None', "exact" : '-', "prediction" : '--'}
-    markerstyle= {"sample" : 'o', "exact" : 'None', "prediction" : 'None'}
-    plot_kwargs = plot_kwargs.copy() if plot_kwargs else {}
-    plot_kwargs["linestyle"] = linestyle
-    plot_kwargs["markerstyle"] = markerstyle
-   
-    if k_num_predict == 1: 
-        path = os.path.join(plot_dir, "state_0.png")
-        utils.plot.plot_eigenvalues(path, Ls, energies, k_num_predict - 1, show=show, save=save, **plot_kwargs)
-    else:
-        utils.plot.plot_eigenvalues_separately(plot_dir, Ls, energies, k_indices=list(range(k_num_predict)), show=show, save=save, **plot_kwargs)
+def make_all_plots(plot_dir, sample_Ls, exact_Ls, predict_Ls, sample_energies, exact_energies, predict_energies, loss, store_loss, save=False, show=False, **plot_kwargs):
+    # plot energy comparison
+    utils.plot.plot_compare_energies(plot_dir, sample_Ls, exact_Ls, predict_Ls, sample_energies, exact_energies, predict_energies, save=save, show=show, **plot_kwargs)
+    # plot loss
     utils.plot.plot_loss(plot_dir, loss, store_loss, show=show, save=save)
+    # plot percent error if `predict_energies==exact_energies`
     if exact_energies.shape == predict_energies.shape:
         utils.plot.plot_percent_error(plot_dir, exact_Ls, exact_energies, predict_energies, show=show, save=save)
     else:

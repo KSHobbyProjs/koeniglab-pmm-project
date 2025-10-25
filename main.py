@@ -27,10 +27,9 @@ def main(model_name, pmm_name, model_kwargs, pmm_kwargs, k_num_sample, k_num_pre
         energy_norm_bounds, sample_energies = processing.process_pmm.sample_pmm(pmm_instance, sample_Ls, model_name, k_num_sample, **model_kwargs)
 
     # train loaded / sampled PMM
-    if epochs > 0:
-        print("PMM loaded / sampled. Training PMM.")
-        losses = processing.process_pmm.train_pmm(pmm_instance, epochs, store_loss)
-        print(f"Finished training PMM. Final loss: {losses[-1]}.")
+    print("PMM loaded / sampled. Training PMM.")
+    losses = processing.process_pmm.train_pmm(pmm_instance, epochs, store_loss)
+    print(f"Finished training PMM. Final loss: {losses[-1]}.")
 
     # predict energies from trained PMM.
     print("Predicting energies now.")
@@ -48,7 +47,7 @@ def main(model_name, pmm_name, model_kwargs, pmm_kwargs, k_num_sample, k_num_pre
     # plot predictions
     print("Plotting eigenvalues, loss, and percent error if possible.")
     processing.process_pmm.make_all_plots(PLOT_DIR, sample_Ls, exact_Ls, predict_Ls, sample_energies, exact_energies, predict_energies, losses, store_loss, 
-                                          plot_kwargs, save=save, show=True)
+                                          save=save, show=True, **plot_kwargs)
     print("Finished plotting.\nExperiment complete.")
 
 if __name__=="__main__":
@@ -70,7 +69,7 @@ if __name__=="__main__":
             }
     k_num_sample = 1
     k_num_predict = 1
-    epochs = 5000
+    epochs = 0
     store_loss = 100
     plot_kwargs = {"xlabel" : "System Length", 
                    "title" : "Gaussian1d (V0=-4, R=2)"}
