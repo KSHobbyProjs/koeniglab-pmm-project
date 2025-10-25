@@ -14,7 +14,7 @@ In many physical systems, the eigenvalues of a Hamiltonian $H(\lambda)$ evolve c
 Computing spectra across a dense grid of parameter values can be computationally expensive. The **Parametric Matrix Model (PMM)** aims to learn an approximate functional form of $H(\lambda)$ from a small number of samples.
 
 PMMs were originally motivated by another computational technique: eigenvector continuation (EC). In EC, one faces the same problem: explicitly diagonalizing the Hamiltonian, which is often massive, for a dense grid of parameter 
-values is often too expensive. Instead, one can diagonalize the Hamiltonian at a few parameter values (sample points), and construct a subspace from the eigenvectors at those parameter values, $M=\text{span}(\{v_i\}_i)\subset\mathcal{H}$. 
+values is often too expensive. Instead, one can diagonalize the Hamiltonian at a few parameter values (sample points), and construct a subspace from the eigenvectors at those parameter values, $$M=\text{span}(\left{v_i\right}_i)\subset\mathcal{H}$$. 
 Then, one can project the Hamiltonian onto this subspace to get a generalized eigenvalue problem $H_{\text{proj}}v = ESv$
 
 Given training data consisting of eigenpairs at sampled parameter values,
