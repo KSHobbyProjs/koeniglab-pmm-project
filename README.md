@@ -10,17 +10,21 @@ The Parametric Matrix Model (PMM) provides a way to approximate the spectral beh
 
 ## Background and Motivation
 
-In many physical systems, the eigenvalues of a Hamiltonian $H(\lambda)$ evolve continuously with respect to a tunable parameter \( \lambda \).  
-Computing spectra across a dense grid of parameter values can be computationally expensive. The **Parametric Matrix Model (PMM)** aims to learn an approximate functional form of \( H(\lambda) \) from a small number of samples.
+In many physical systems, the eigenvalues of a Hamiltonian $H(\lambda)$ evolve continuously with respect to a tunable parameter $\lambda$.  
+Computing spectra across a dense grid of parameter values can be computationally expensive. The **Parametric Matrix Model (PMM)** aims to learn an approximate functional form of $H(\lambda)$ from a small number of samples.
+
+PMMs were originally motivated by another computational technique: eigenvector continuation (EC). In EC, one faces the same problem: explicitly diagonalizing the Hamiltonian, which is often massive, for a dense grid of parameter 
+values is often too expensive. Instead, one can diagonalize the Hamiltonian at a few parameter values (sample points), and construct a subspace from the eigenvectors at those parameter values, $M=\text{span}(\{v_i\}_i)\subset\mathcal{H}$. 
+Then, one can project the Hamiltonian onto this subspace to get a generalized eigenvalue problem $H_{\text{proj}}v = ESv$
 
 Given training data consisting of eigenpairs at sampled parameter values,
-\[
+$$
 H(\lambda_i) \psi_n^{(i)} = E_n^{(i)} \psi_n^{(i)},
-\]
+$$
 the PMM assumes a parameterized matrix form
-\[
+$$
 H_\theta(\lambda) = A_\theta + \lambda B_\theta,
-\]
+$$
 and learns \( A_\theta, B_\theta \) by minimizing the difference between the model’s eigenvalues and the sampled true energies.  
 Once trained, the PMM can predict spectra at unseen parameter values.
 
