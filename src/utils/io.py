@@ -1,6 +1,9 @@
 import pickle
 import json
 import datetime as dt
+import yaml
+
+import numpy as np
 
 # store eigenvalues in a pickled data file
 def save_eigenpairs(path, Ls, energies, eigenstates):
@@ -29,8 +32,12 @@ def load_experiment_metadata(path):
     with open(path, "r") as f:
         return json.load(f)
 
-def save_normalization_metadata(path, emin, emax):
+def save_normalization_metadata(path, Ls_norm_bounds, energy_norm_bounds):
+    lmin, lmax = Ls_norm_bounds
+    emin, emax = energy_norm_bounds
     norm_metadata = {
+            "lmin" : lmin,
+            "lmax" : lmax,
             "emin" : emin,
             "emax" : emax,
             }
@@ -41,7 +48,8 @@ def load_normalization_metadata(path):
     with open(path, "r") as f:
         norm_metadata = json.load(f)
     emin, emax = norm_metadata["emin"], norm_metadata["emax"]
-    return (emin, emax)
+    lmin, lmax = norm_metadata["lmin"], norm_metadata["lmax"]
+    return ((lmin, lmax), (emin, emax))
 
 def save_state(path, state):
     with open(path, "wb") as f:
@@ -51,3 +59,13 @@ def load_state(path):
     with open(path, "rb") as f:
         state = pickle.load(f)
         return state
+
+def load_config(path):
+    with open(path, "r") as f:
+        cfg = yaml.safe_load(f)
+    
+    lmin, lmax = cfg["sample_Ls"]["Lmin"], cfg["sample_Ls"]["Lmax"]
+    llen, lexp = cfg["sample_Ls"]["Llen"], cfg["sample_Ls"]["Lexp"]
+    cfg["sample_Ls"] = lmin + np.linspace(0, 1, llen) ** lexp * (lmax - lmin)
+    return cfg
+

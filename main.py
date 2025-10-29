@@ -10,7 +10,7 @@ def main(model_name, pmm_name, model_kwargs, pmm_kwargs, k_num_sample, k_num_pre
     PLOT_DIR = os.path.join(EXPERIMENT_DIR, "plots")
 
     # grab exact eigenpair data if it exists, otherwise load it. if predict_Ls is None, assume user wants to take predictions at exact Ls.
-    print("Grabbing exact eigenpair data.")
+    print("Grabbing exact eigenpair data.") 
     exact_Ls, exact_energies, _ = processing.process_exact.load_exact_eigenpairs(model_name, predict_Ls, k_num_predict, **model_kwargs)
     if predict_Ls is None: predict_Ls = exact_Ls
 
@@ -29,6 +29,7 @@ def main(model_name, pmm_name, model_kwargs, pmm_kwargs, k_num_sample, k_num_pre
     # train loaded / sampled PMM
     print("PMM loaded / sampled. Training PMM.")
     losses = processing.process_pmm.train_pmm(pmm_instance, epochs, store_loss)
+    if len(losses) == 0: raise RuntimeError("epochs can't be 0 if no PMM is loaded. No PMM trained.")
     print(f"Finished training PMM. Final loss: {losses[-1]}.")
 
     # predict energies from trained PMM.
@@ -55,8 +56,8 @@ if __name__=="__main__":
     pmm_name = "PMM"
     model_kwargs = {"N" : 128, "V0" : -4, "R" : 2}
     pmm_kwargs = {
-            "dim" : 2,
-            "num_primary" : 2,
+            "dim" : 6,
+            "num_primary" : 4,
             "num_secondary" : 0,
             "eta" : 1e-2,
             "beta1" : 0.9,
@@ -67,19 +68,27 @@ if __name__=="__main__":
             "mag" : 1e-1,
             "seed" : 135 #153
             }
-    k_num_sample = 1
-    k_num_predict = 1
-    epochs = 0
+    k_num_sample = 3
+    k_num_predict = 3
+    epochs = 20000
     store_loss = 100
     plot_kwargs = {"xlabel" : "System Length", 
                    "title" : "Gaussian1d (V0=-4, R=2)"}
     
-    Lmin, Lmax = 5, 20
+    Lmin, Lmax = 5, 8
     Llen = 20
     sample_Ls = Lmin + np.linspace(0, 1, Llen)**1.5 * (Lmax - Lmin)
-    # sample_Ls = np.linspace(Lmin, Lmax, Llen)
+    #sample_Ls = np.linspace(Lmin, Lmax, Llen)
     predict_Ls = None
     try_load = True
     save = True
-
-    main(model_name, pmm_name, model_kwargs, pmm_kwargs, k_num_sample, k_num_predict, epochs, store_loss, plot_kwargs, sample_Ls, predict_Ls, try_load, save)
+    """
+    cfg = utils.io.load_config(utils.paths.CONFIG_PATH)
+    print([(k, type(v)) for k, v in cfg["pmm_kwargs"].items()])
+    main(**cfg)
+    """
+    #main(model_name, pmm_name, model_kwargs, pmm_kwargs, k_num_sample, k_num_predict, epochs, store_loss, plot_kwargs, sample_Ls, predict_Ls, try_load, save)
+    for k in np.arange(2, 6):
+        k_num_sample = k
+        k_num_predict = k
+        main(model_name, pmm_name, model_kwargs, pmm_kwargs, k_num_sample, k_num_predict, epochs, store_loss, plot_kwargs, sample_Ls, predict_Ls, try_load, save)

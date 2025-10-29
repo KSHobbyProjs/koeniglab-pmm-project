@@ -2,6 +2,7 @@ import os
 from . import misc
 
 MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_PATH = os.path.join(MODULE_DIR, "../../config.yaml")
 DATA_DIR = os.path.join(MODULE_DIR, "../../data")
 DATA_PLOTS_DIR = os.path.join(DATA_DIR, "plots")
 EC_DIR = os.path.join(MODULE_DIR, "../../ec_data")

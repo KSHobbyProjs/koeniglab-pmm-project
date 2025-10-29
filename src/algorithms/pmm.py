@@ -329,3 +329,34 @@ class PMM:
         # step parameter
         parameter = parameter - eta * vt_hat / (jnp.sqrt(mt_hat) + eps)
         return parameter, vt, mt
+
+class PMMInverse(PMM):
+    def __init__(self, dim, num_primary=2, num_secondary=0,
+                 eta=.2e-2, beta1=0.9, beta2=0.999, eps=1e-8, absmaxgrad=1e3,
+                 l2=0.0, mag=0.5e-1, seed=0):
+        super().__init__(dim, num_primary, num_secondary,
+                 eta, beta1, beta2, eps, absmaxgrad,
+                 l2, mag, seed)
+    
+    @staticmethod
+    def get_basis(Ls, num_primary):
+        powers = jnp.arange(num_primary)
+        basis = (1 / Ls[None, :]) ** powers[:, None]
+        return basis
+
+class PMMSeasoned(PMM):
+    def __init__(self, dim, num_primary=2, num_secondary=0,
+                 eta=.2e-2, beta1=0.9, beta2=0.999, eps=1e-8, absmaxgrad=1e3,
+                 l2=0.0, mag=0.5e-1, seed=0):
+        super().__init__(dim, num_primary, num_secondary,
+                 eta, beta1, beta2, eps, absmaxgrad,
+                 l2, mag, seed)
+    
+    @staticmethod
+    def get_basis(Ls, num_primary):
+        idx = jnp.arange(num_primary)
+        powers = ((idx + 1) // 2) * (-1) ** (idx + 1)
+        basis = Ls[None, :] ** powers[:, None]
+        return basis
+
+

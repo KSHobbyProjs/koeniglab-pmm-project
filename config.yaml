@@ -1,0 +1,46 @@
+# model information
+model_name: "gaussian.Gaussian1d"
+model_kwargs:
+  N: 128
+  V0: !!float -4
+  R: !!float 2
+
+# PMM state information
+pmm_name: "PMM"
+pmm_kwargs:
+  dim: 5
+  num_primary: 2
+  num_secondary: 0
+  eta: !!float 1e-2
+  beta1: 0.9
+  beta2: 0.999
+  eps: !!float 1e-8
+  absmaxgrad: !!float 1e3
+  l2: 0.0
+  mag: !!float 1e-1
+  seed: 135
+
+# sample data information
+try_load: true
+k_num_sample: 1
+sample_Ls:
+  Lmin: 5
+  Lmax: 20
+  Llen: 20
+  Lexp: 1.5
+
+# training information
+epochs: 0
+store_loss: 100
+
+# prediction 
+k_num_predict: 1
+predict_Ls: null # this line needs to be null or a list like [] for now (no numpy)
+
+# plotting information  
+plot_kwargs:
+  xlabel: "System Length"
+  title: "Gaussian1d (V0=-4, R=2)"
+
+# save
+save: false
