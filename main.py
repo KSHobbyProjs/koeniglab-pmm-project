@@ -4,14 +4,14 @@ import numpy as np
 from src import utils
 from src import processing
 
-def main(model_name, pmm_name, model_kwargs, pmm_kwargs, k_num_sample, k_num_predict, epochs, store_loss, plot_kwargs, sample_Ls, predict_Ls, try_load, save):
+def main(model_name, pmm_name, model_kwargs, pmm_kwargs, k_num_sample, k_num_predict, epochs, store_loss, plot_kwargs, sample_Ls, predict_Ls, try_load, save, show):
     # create directory to store experiment in
     EXPERIMENT_DIR = utils.paths.experiment_subdir(model_name, pmm_name, model_kwargs, pmm_kwargs, k_num_sample, sample_Ls)
     PLOT_DIR = os.path.join(EXPERIMENT_DIR, "plots")
 
     # grab exact eigenpair data if it exists, otherwise load it. if predict_Ls is None, assume user wants to take predictions at exact Ls.
     print("Grabbing exact eigenpair data.") 
-    exact_Ls, exact_energies, _ = processing.process_exact.load_exact_eigenpairs(model_name, predict_Ls, k_num_predict, **model_kwargs)
+    exact_Ls, exact_energies = processing.process_exact.load_exact_eigenvalues(model_name, predict_Ls, k_num_predict, **model_kwargs)
     if predict_Ls is None: predict_Ls = exact_Ls
 
     # initialize pmm instance
@@ -41,54 +41,22 @@ def main(model_name, pmm_name, model_kwargs, pmm_kwargs, k_num_sample, k_num_pre
         print("Saving PMM state.")
         # if save, create experiment directory and save pmm state
         os.makedirs(EXPERIMENT_DIR, exist_ok=True)
-        os.makedirs(PLOT_DIR, exist_ok=True)
         processing.process_pmm.save_pmm(EXPERIMENT_DIR, pmm_instance, energy_norm_bounds, sample_Ls, predict_Ls, predict_energies)
         print("Finished saving PMM state.")
 
     # plot predictions
     print("Plotting eigenvalues, loss, and percent error if possible.")
     processing.process_pmm.make_all_plots(PLOT_DIR, sample_Ls, exact_Ls, predict_Ls, sample_energies, exact_energies, predict_energies, losses, store_loss, 
-                                          save=save, show=True, **plot_kwargs)
+                                          save=save, show=show, **plot_kwargs)
     print("Finished plotting.\nExperiment complete.")
 
 if __name__=="__main__":
-    model_name = "gaussian.Gaussian1d"
-    pmm_name = "PMM"
-    model_kwargs = {"N" : 128, "V0" : -4, "R" : 2}
-    pmm_kwargs = {
-            "dim" : 6,
-            "num_primary" : 4,
-            "num_secondary" : 0,
-            "eta" : 1e-2,
-            "beta1" : 0.9,
-            "beta2" : 0.999,
-            "eps" : 1e-8,
-            "absmaxgrad" : 1e3,
-            "l2" : 0.0,
-            "mag" : 1e-1,
-            "seed" : 135 #153
-            }
-    k_num_sample = 3
-    k_num_predict = 3
-    epochs = 20000
-    store_loss = 100
-    plot_kwargs = {"xlabel" : "System Length", 
-                   "title" : "Gaussian1d (V0=-4, R=2)"}
-    
-    Lmin, Lmax = 5, 8
-    Llen = 20
-    sample_Ls = Lmin + np.linspace(0, 1, Llen)**1.5 * (Lmax - Lmin)
-    #sample_Ls = np.linspace(Lmin, Lmax, Llen)
-    predict_Ls = None
-    try_load = True
-    save = True
-    """
     cfg = utils.io.load_config(utils.paths.CONFIG_PATH)
-    print([(k, type(v)) for k, v in cfg["pmm_kwargs"].items()])
-    main(**cfg)
-    """
-    #main(model_name, pmm_name, model_kwargs, pmm_kwargs, k_num_sample, k_num_predict, epochs, store_loss, plot_kwargs, sample_Ls, predict_Ls, try_load, save)
-    for k in np.arange(2, 6):
-        k_num_sample = k
-        k_num_predict = k
-        main(model_name, pmm_name, model_kwargs, pmm_kwargs, k_num_sample, k_num_predict, epochs, store_loss, plot_kwargs, sample_Ls, predict_Ls, try_load, save)
+    #main(**cfg)
+     
+    for Lmax in [8, 10, 12, 14, 16, 18]:
+        for N in [8, 16, 32]:
+            print(f"Training PMM for Lmax={Lmax}, N={N}")
+            cfg["model_kwargs"]["N"] = N
+            cfg["sample_Ls"] = np.linspace(5, Lmax, 50)
+            main(**cfg)

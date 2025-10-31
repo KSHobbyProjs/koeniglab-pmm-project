@@ -63,9 +63,13 @@ def plot_eigenvalues(path, Ls, energies, k_num=0, show=False, save=False, **kwar
     ax.set_ylabel(ylabel)
     ax.set_title(title)
     ax.legend()
-
+    
     plt.tight_layout()
-    if save: plt.savefig(path)
+    if save:
+        save_dir = os.path.dirname(path)
+        if save_dir:
+            os.makedirs(save_dir, exist_ok=True)
+        plt.savefig(path)
     if show: plt.show()
     plt.close(fig)
 

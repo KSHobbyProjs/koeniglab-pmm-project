@@ -99,3 +99,22 @@ class Gaussian1d(base_model.BaseModel):
 
         H = T + V
         return H
+
+class Gaussian3dDVR(base_model.BaseModel):
+    """
+    This class serves to represent the Gaussian potential computed
+    using the DVR basis. The actual computations using the DVR setup are done
+    on a workstation, not using this class. 
+
+    This class is not meant to compute anything, and is just supposed to represent
+    another type of Gaussian set-up that the PMM code uses. As such, an error is flagged
+    if `construct_H` is called. 
+
+    If one wants to use the data from this set-up, they must run DVR code and put the
+    energy data in the sample_data directory.
+    """
+    def __init__(self):
+        pass
+
+    def construct_H(self, L):
+        raise RuntimeError("`construct_H` was called for the DVR Gaussian")

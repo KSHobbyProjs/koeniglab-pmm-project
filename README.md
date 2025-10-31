@@ -135,8 +135,8 @@ results/<experiment directory>/
 
 ## Example Workflow
 
-1. Load all energy data from all physics models by running `get_exact_data.sh` (optional).
-2. Load all EC predictions by running `get_ec_predicted_data.sh` (for demonstration purposes).
+1. Load all energy data from all physics models by running `python -m scripts.get_exact_data` from root (optional).
+2. Load all EC predictions by running `python -m scripts.get_ec_predicted_data` (for demonstration purposes).
 3. Train a PMM using a small subset of sampled parameter values.
 4. Predict eigenvalues at unseen parameters.
 5. Plot results to compare PMM predictions vs. exact data.

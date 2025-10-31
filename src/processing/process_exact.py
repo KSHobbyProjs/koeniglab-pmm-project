@@ -2,7 +2,7 @@ import os
 from .. import physics_models as pm
 from .. import utils
 
-def load_exact_eigenpairs(model_name, Ls, k_num, **model_kwargs):
+def load_exact_eigenvalues(model_name, Ls, k_num, **model_kwargs):
     """
     a wrapper to either load eigenpairs from a file or compute them if no such file exists.
 
@@ -11,14 +11,14 @@ def load_exact_eigenpairs(model_name, Ls, k_num, **model_kwargs):
     model_string = utils.misc.make_model_string(model_name, **model_kwargs)
     file_path = os.path.join(utils.paths.DATA_DIR, "exact_eigenpairs__" + model_string + ".pkl") 
     try:
-        exact_Ls, exact_energies, exact_states = utils.io.load_eigenpairs(file_path)
+        exact_Ls, exact_energies = utils.io.load_eigenvalues(file_path)
         exact_energies = exact_energies[:, :k_num]
-        exact_states = exact_states[:, :k_num, :]
+        # exact_states = exact_states[:, :k_num, :]
     except FileNotFoundError:
         if Ls is None: raise FileNotFoundError("No exact eigenpair data was found. `Ls` can't be None if no exact eigenpair data is preloaded")
-        exact_energies, exact_states = compute_exact_eigenpairs(model_name, Ls, k_num, **model_kwargs)
+        exact_energies, _ = compute_exact_eigenpairs(model_name, Ls, k_num, **model_kwargs)
         exact_Ls = Ls
-    return exact_Ls, exact_energies, exact_states
+    return exact_Ls, exact_energies
 
 # get eigenvectors from model
 def compute_exact_eigenpairs(model_name, Ls, k_num, **model_kwargs):

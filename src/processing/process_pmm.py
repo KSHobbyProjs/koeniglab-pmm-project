@@ -9,8 +9,15 @@ def initialize_pmm(pmm_name, **pmm_kwargs):
     return pmm_instance
 
 def sample_pmm(pmm_instance, sample_Ls, model_name, k_num_sample, **model_kwargs):
-    # compute sample energies from sample_Ls
-    sample_energies, _ = process_exact.compute_exact_eigenpairs(model_name, sample_Ls, k_num_sample, **model_kwargs)
+    sample_path = os.path.join(utils.paths.SAMPLE_DATA_DIR, "sample_eigenvalues__" + utils.misc.make_sample_data_string(model_name, sample_Ls, **model_kwargs) + ".pkl")
+    if os.path.exists(sample_path):
+        print("[INFO] Found data from sample_data dir. Loading sample data.")
+        _, sample_energies = utils.io.load_eigenvalues(sample_path)
+        sample_energies = sample_energies[:,:k_num_sample] # truncate to only the sample energies
+    else:
+        print("[INFO] No data found at sample_data dir. Computing sample data now.")
+        # compute sample energies from sample_Ls
+        sample_energies, _ = process_exact.compute_exact_eigenpairs(model_name, sample_Ls, k_num_sample, **model_kwargs)
 
     # normalize data before training
     lmin, lmax, normed_sample_Ls = utils.math.normalize(sample_Ls)
@@ -58,10 +65,9 @@ def predict_pmm(pmm_instance, predict_Ls, k_num_predict, norm_bounds):
     return predict_energies
 
 def save_pmm(experiment_dir, pmm_instance, norm_bounds, sample_Ls, predict_Ls, predict_energies):
-    sampleLs_hash = utils.misc.create_hash_from_sampleLs(sample_Ls)
     state = pmm_instance.get_state()
     metadata = pmm_instance.get_metadata()
-    metadata["sample_Ls"] = f"min-{min(sample_Ls)}--max-{max(sample_Ls)}--len-{len(sample_Ls)}--hash-{sampleLs_hash}",
+    metadata["sample_Ls"] = utils.misc.create_sample_Ls_string(sample_Ls)
 
     # define paths
     state_path = os.path.join(experiment_dir, "pmm_state.pkl")

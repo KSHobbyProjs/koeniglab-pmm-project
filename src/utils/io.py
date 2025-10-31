@@ -23,6 +23,13 @@ def load_eigenpairs(path):
     eigenstates = data["eigenstates"]
     return Ls, energies, eigenstates
 
+def load_eigenvalues(path):
+    with open(path, "rb") as f:
+        data = pickle.load(f)
+    Ls = data["Ls"]
+    energies = data["energies"]
+    return Ls, energies
+
 def save_experiment_metadata(path, metadata):
     metadata["data_created"] = dt.datetime.now().isoformat()
     with open(path, "w") as f:
@@ -66,6 +73,9 @@ def load_config(path):
     
     lmin, lmax = cfg["sample_Ls"]["Lmin"], cfg["sample_Ls"]["Lmax"]
     llen, lexp = cfg["sample_Ls"]["Llen"], cfg["sample_Ls"]["Lexp"]
-    cfg["sample_Ls"] = lmin + np.linspace(0, 1, llen) ** lexp * (lmax - lmin)
+    if lexp == 1.0: 
+        cfg["sample_Ls"] = np.linspace(lmin, lmax, llen)
+    else: 
+        cfg["sample_Ls"] = lmin + np.linspace(0, 1, llen) ** lexp * (lmax - lmin)
     return cfg
 

@@ -22,7 +22,7 @@ def process_ec_predicted_eigenpairs(
     os.makedirs(plot_dir, exist_ok=True)
 
     # load exact energy data or compute energy data at predict_Ls
-    exact_Ls, exact_energies, _ = process_exact.load_exact_eigenpairs(model_name, predict_Ls, k_num_predict, **model_kwargs)
+    exact_Ls, exact_energies = process_exact.load_exact_eigenvalues(model_name, predict_Ls, k_num_predict, **model_kwargs)
     if predict_Ls is None: predict_Ls = exact_Ls
 
     # create ec instance
