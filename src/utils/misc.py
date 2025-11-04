@@ -41,3 +41,68 @@ def format_param(param):
         return param
     else:
         raise TypeError(f"Unsupported type: {type(value)}")
+
+def parse_kwargs(s):
+    """
+    Parses a string like N=32,V0=-4.0,R=2.0 into a dict.
+    """
+    kwargs = {}
+    for kv in s.split(","):
+        if not kv.strip():
+            continue
+        if "=" not in kv:
+            raise RuntimeError(f"Invalid argument input: '{kv}'. Kwarg arguments need to be input in the form `key1=val1,key2=val2`")
+        k, v = kv.split("=", 1)
+
+        # attempt numeric conversion
+        try: 
+            if "." in v:
+                v = float(v)
+            else:
+                v = int(v)
+        except ValueError:
+            pass # leave as string if not numeric
+        kwargs[k.strip()] = v
+    return kwargs
+
+def parse_Ls(s):
+    """
+    Parses a flexible CLI argument for sample/predict_Ls.
+
+    Examples:
+        '1.5'        -> np.array([1.5])
+        '1.0,2.0,3.0'    -> np.array([1.0, 2.0])
+        '5,20:50'    -> np.linspace(5, 20, 50)
+        '5,20:50;1.5 -> 5 + np.linspace(0, 1, 50)**1.5 * (20 - 5)
+        'none'       -> None
+    """
+    s = s.strip().lower()
+    if s == "none":
+        return None
+
+    # If colon syntax (linspace)
+    if ":" in s:
+        try:
+            lmin_lmax, llen_lexp = s.split(":")
+            lmin, lmax = lmin_lmax.split(",")
+            if "," in llen_lexp:
+                llen, lexp = llen_lexp.split(",")
+                lexp = float(lexp)
+            else:
+                llen = llen_lexp
+                lexp = 1.0
+            lmin, lmax, llen = float(lmin), float(lmax), int(llen)
+
+            if lexp == 1.0:
+                return np.linspace(lmin, lmax, llen)
+            else:
+                return lmin + np.linspace(0.0, 1.0, llen)**lexp * (lmax - lmin)
+        except Exception as e:
+            raise ValueError(f"Invalid linspace format: {s}. Use 'lmin,lmax:llen' or 'lmin,lmax:llen,lexp'") from e
+    
+    # otherwise, assume comma-separated list of numbers
+    if "," in s:
+        return np.array([float(x) for x in s.split(",")])
+
+    # otherwise, assume a single float
+    return np.array([float(s)])

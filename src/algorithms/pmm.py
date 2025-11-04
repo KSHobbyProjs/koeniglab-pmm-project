@@ -85,7 +85,7 @@ class PMM:
         losses = np.zeros(epochs // store_loss)
 
         # jit the loss function so that it's significantly quicker to call
-        jit_loss = jax.jit(PMM.loss)
+        jit_loss = jax.jit(self.loss)
         grad_loss = jax.jit(jax.grad(jit_loss))
 
         for t in range(epochs):
@@ -123,7 +123,8 @@ class PMM:
     def predict_energies(self, Ls_predict, k_num=1):
         Ls_predict = jnp.atleast_1d(Ls_predict)
         Ms = PMM._M(self._params, Ls_predict)
-        eigvals, _ = PMM._get_eigenvalues(Ms, k_num)
+        eigvals, _ = PMM._get_eigenvalues(Ms)
+        eigvals = eigvals[:, :k_num] # report only the k_num lowest eigenvalues
         return eigvals
 
     # add function here that wraps all pmm mechanics: sampling, training, predicting, saving, and loading
@@ -227,7 +228,8 @@ class PMM:
         """
         k_num = energies.shape[1]
         Ms = PMM._M(params, Ls)
-        eigvals, _ = PMM._get_eigenvalues(Ms, k_num)
+        eigvals, _ = PMM._get_eigenvalues(Ms)
+        eigvals = eigvals[:, :k_num] # truncate to the k_num_sample lowest eigenvalues
         loss = jnp.mean(jnp.abs(eigvals - energies)**2)
 
         # use params['secondary_diags'], etc. to add secondary-matrix behavior to loss
@@ -256,16 +258,15 @@ class PMM:
         H = upper_matrices + upper_matrices.conj().swapaxes(1, 2) - diag_matrices
         return H
 
-    # get the k_num-lowest eigenvalues of M (or Ms if M is given as a batch of matrices)
+    # get all eigenvalues of M (or Ms if M is given as a batch of matrices)
     @staticmethod
-    def _get_eigenvalues(M, k_num):
+    def _get_eigenvalues(M):
         """
         Parameters
         ----------
         M : jnparray
             Array of PMM matrices shape (num_primary, n, n).
-        k_num : int
-            Take the `k_num`th lowest number of eigenvalues of M.
+        
         Returns
         -------
         eigvals : jnparray
@@ -282,9 +283,8 @@ class PMM:
         eigvals = jnp.take_along_axis(eigvals, idx, axis=1)
         eigvecs = jnp.take_along_axis(eigvecs, idx[:, None, :], axis=2)
 
-        # take the lowest k_num eigenpairs and transpose eigvecs to (len(M), k_num, :)
-        eigvals = eigvals[:, :k_num]
-        eigvecs = eigvecs[:, :, :k_num].swapaxes(1, 2)
+        # transpose eigvecs to (len(M), k_num, :)
+        eigvecs = eigvecs.swapaxes(1, 2)
 
         return eigvals, eigvecs
 
@@ -343,6 +343,30 @@ class PMMInverse(PMM):
         powers = jnp.arange(num_primary)
         basis = (1 / Ls[None, :]) ** powers[:, None]
         return basis
+    
+    @staticmethod
+    def _M(params, Ls):
+        """
+        Parameters
+        ----------
+        params : dict of jnparray
+            Parameters for PMM matrices.
+        Ls : jnparray
+            List of parameters. Shape (len(Ls),).
+        
+        Returns
+        -------
+        M : jnparray
+            List of PMM matrices. Shape (num_primary, n, n).
+        """
+        # grab primary matrix parameters and construct H for each set
+        diags, uppers = params["primary_diags"], params["primary_uppers"]
+        Hs = PMM._construct_hermitian(diags, uppers)
+        
+        # construct M via power series (H_0 + g*H_1 + g^2*H_2 + ...) for total number of primary matrices
+        basis = PMMInverse.get_basis(Ls, len(Hs))
+        M = jnp.einsum('bm,bij->mij', basis, Hs)
+        return M
 
 class PMMSeasoned(PMM):
     def __init__(self, dim, num_primary=2, num_secondary=0,
@@ -358,5 +382,83 @@ class PMMSeasoned(PMM):
         powers = ((idx + 1) // 2) * (-1) ** (idx + 1)
         basis = Ls[None, :] ** powers[:, None]
         return basis
+    
+    @staticmethod
+    def _M(params, Ls):
+        """
+        Parameters
+        ----------
+        params : dict of jnparray
+            Parameters for PMM matrices.
+        Ls : jnparray
+            List of parameters. Shape (len(Ls),).
+        
+        Returns
+        -------
+        M : jnparray
+            List of PMM matrices. Shape (num_primary, n, n).
+        """
+        # grab primary matrix parameters and construct H for each set
+        diags, uppers = params["primary_diags"], params["primary_uppers"]
+        Hs = PMM._construct_hermitian(diags, uppers)
+        
+        # construct M via power series (H_0 + g*H_1 + g^2*H_2 + ...) for total number of primary matrices
+        basis = PMMSeasoned.get_basis(Ls, len(Hs))
+        M = jnp.einsum('bm,bij->mij', basis, Hs)
+        return M
+
+class PMMParity(PMM):
+    def __init__(self, dim, num_primary=2, num_secondary=0,
+                 eta=.2e-2, beta1=0.9, beta2=0.999, eps=1e-8, absmaxgrad=1e3,
+                 l2=0.0, mag=0.5e-1, seed=0):
+        super().__init__(dim, num_primary, num_secondary,
+                 eta, beta1, beta2, eps, absmaxgrad,
+                 l2, mag, seed)
+
+    @staticmethod
+    def loss(params, Ls, energies, l2):
+        """
+        Ls : jndarray of shape (len(Ls),)
+        energies : jndarray of shape (len(energies),k_num)
+        """
+        k_num_sample = energies.shape[1]
+        Ms = PMM._M(params, Ls)
+        eigvals, eigvecs = PMM._get_eigenvalues(Ms)
+        eigvals = eigvals[:, :k_num_sample] # truncate to the k_num_sample lowest number of eigenvalues
+        loss = jnp.mean(jnp.abs(eigvals - energies)**2)
+       
+        # calculate loss that punishes deviations from parity
+        # if want to only check parity against sample eigenvectors, do k_num=k_num_sample in the line below
+        projected_parity_matrices = PMMParity._get_parity_projections(params, eigvecs, k_num=None)
+        proj_parity_diags = projected_parity_matrices * jnp.eye(projected_parity_matrices.shape[-1], dtype=projected_parity_matrices.dtype)
+        proj_parity_offdiags = projected_parity_matrices - proj_parity_diags
+        fro_norms = jnp.sqrt(jnp.sum(jnp.abs(proj_parity_offdiags)**2, axis=(-2, -1)) / (projected_parity_matrices.shape[-1]**2 - projected_parity_matrices.shape[-1]))
+        off_diag_loss = jnp.mean(fro_norms)
+        diag_loss = jnp.mean((jnp.abs(proj_parity_diags) - 1.0)**2)
+        ploss = .1
+        # parity loss 
+        loss += ploss * (off_diag_loss + diag_loss)
+
+        # l2 penalty
+        loss += l2 * (jnp.mean(jnp.abs(params["primary_diags"])**2) + 
+                      jnp.mean(jnp.abs(params["primary_uppers"])**2))
+        return loss    
 
 
+    @staticmethod
+    def _get_parity_projections(params, eigvecs, k_num=None):
+        # create parity operator
+        dim = params["primary_diags"].shape[1]
+        parity_diags = (-1) ** jnp.arange(dim)
+        P = jnp.diag(parity_diags).astype(jnp.complex128)
+
+        if k_num is None: k_num = dim
+        # construct eigenbasis projection operator at each parameter value
+        V = eigvecs[:, :k_num, :].swapaxes(1, 2)
+        
+        # project parity operator onto eigenbasis
+        def parity_projection(V, P):
+            return jnp.conj(V).T @ P @ V
+
+        S = jax.vmap(parity_projection, in_axes=(0, None))(V, P)
+        return S

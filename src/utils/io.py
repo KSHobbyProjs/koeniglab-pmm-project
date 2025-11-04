@@ -70,12 +70,23 @@ def load_state(path):
 def load_config(path):
     with open(path, "r") as f:
         cfg = yaml.safe_load(f)
+
+    def form_Ls(val):
+        if val == None: return None
+        if isinstance(val, (int, float, list)):
+            return np.atleast_1d(val).astype(np.float64)
+        elif isinstance(val, dict):
+            lmin, lmax, llen = val["Lmin"], val["Lmax"], val["Llen"]
+            lexp = val.get("Lexp", 1.0)
+
+            if lexp == 1.0:
+                return np.linspace(lmin, lmax, llen)
+            else:
+                return lmin + np.linspace(lmin, lmax, llen)**lexp * (lmax - lmin)
+        else:
+            raise TypeError(f"{val} needs to either be an int, float, list, or dict. If dict, it needs to have 'Lmax', 'Lmin', and 'Llen' keys.")
     
-    lmin, lmax = cfg["sample_Ls"]["Lmin"], cfg["sample_Ls"]["Lmax"]
-    llen, lexp = cfg["sample_Ls"]["Llen"], cfg["sample_Ls"]["Lexp"]
-    if lexp == 1.0: 
-        cfg["sample_Ls"] = np.linspace(lmin, lmax, llen)
-    else: 
-        cfg["sample_Ls"] = lmin + np.linspace(0, 1, llen) ** lexp * (lmax - lmin)
+    cfg["sample_Ls"] = form_Ls(cfg["sample_Ls"])
+    cfg["predict_Ls"] = form_Ls(cfg["predict_Ls"])
     return cfg
 
