@@ -18,6 +18,10 @@ def make_sample_data_string(model_name, sample_Ls, **model_kwargs):
     sample_data_string = model_string + "__sample_Ls_" + create_sample_Ls_string(sample_Ls)
     return sample_data_string
 
+def make_ec_data_string(model_name, sample_Ls, k_num_sample, **model_kwargs):
+    ec_data_string = make_sample_data_string(model_name, sample_Ls, **model_kwargs) + f"__k_num_sample_{k_num_sample}"
+    return ec_data_string
+
 def create_sample_Ls_string(sample_Ls):
     lmin, lmax, llen = np.min(sample_Ls), np.max(sample_Ls), len(sample_Ls)
     hashstring = create_hash_from_sampleLs(sample_Ls)

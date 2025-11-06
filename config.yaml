@@ -6,10 +6,10 @@ model_kwargs:
   R: 2.0
 
 # PMM state information
-pmm_name: "PMMParity"
+pmm_name: "PMM"
 pmm_kwargs:
   dim: 8
-  num_primary: 5
+  num_primary: 2
   num_secondary: 0
   eta: 1.0e-2
   beta1: 0.9
@@ -22,15 +22,15 @@ pmm_kwargs:
 
 # sample data information
 try_load: false
-k_num_sample: 5
-sample_Ls: {"Lmin" : 5.0, "Lmax" : 20.0, "Llen" : 50, "Lexp" : 1.0}
+k_num_sample: 1
+sample_Ls: {"Lmin" : 5.0, "Lmax" : 9.0, "Llen" : 20, "Lexp" : 1.0}
 
 # training information
-epochs: 5000
+epochs: 10000
 store_loss: 100
 
 # prediction 
-k_num_predict: 5
+k_num_predict: 1
 predict_Ls: null 
 
 # plotting information  

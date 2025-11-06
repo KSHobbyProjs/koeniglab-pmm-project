@@ -108,10 +108,10 @@ This script samples exact data, trains a PMM, and plots predictions.
 
 ```bash
 python -m src.main \
-    --model_name gaussian \
+    --model_name gaussian.Gaussian1d \
     --epochs 5000 \
-    --sample_Ls 1.0 1.5 2.0 \
-    --predict_Ls 2.5 3.0 \
+    --sample_Ls 5.0,20.0:50 \
+    --predict_Ls None \
     --k_num_sample 3 \
     --k_num_predict 3 \
     --store_loss 100

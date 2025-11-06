@@ -1,0 +1,19 @@
+{
+  "type": "PMM",
+  "dim": 6,
+  "num_primary": 2,
+  "k_num_sample": 1,
+  "epochs": 10000,
+  "final_loss": 1.2534924652372717e-06,
+  "num_secondary": 0,
+  "eta": 0.01,
+  "beta1": 0.9,
+  "beta2": 0.999,
+  "eps": 1e-08,
+  "absmaxgrad": 1000.0,
+  "l2": 0.0,
+  "mag": 0.1,
+  "seed": 135,
+  "sample_Ls": "min-5.000--max-10.000--len-20--hash-262a21",
+  "data_created": "2025-11-05T12:08:24.302281"
+}

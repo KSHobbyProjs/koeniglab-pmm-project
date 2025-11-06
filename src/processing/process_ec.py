@@ -16,9 +16,9 @@ def process_ec_predicted_eigenpairs(
         ):
 
     # try loading existing exact data
-    model_string =  utils.misc.make_model_string(model_name, **model_kwargs)
-    file_path = os.path.join(utils.paths.EC_DIR, "ec_predicted_eigenpairs" + model_string + ".pkl")
-    plot_dir = os.path.join(utils.paths.EC_PLOTS_DIR, model_string)
+    ec_string = utils.misc.make_ec_data_string(model_name, sample_Ls, k_num_sample, **model_kwargs)
+    file_path = os.path.join(utils.paths.EC_DIR, "ec_predicted_eigenpairs__" + ec_string + ".pkl")
+    plot_dir = os.path.join(utils.paths.EC_PLOTS_DIR, "ec_predicted_eigenpairs__" + ec_string)
     os.makedirs(plot_dir, exist_ok=True)
 
     # load exact energy data or compute energy data at predict_Ls
