@@ -30,8 +30,8 @@ epochs: 10000
 store_loss: 100
 
 # prediction 
-k_num_predict: 1
-predict_Ls: null 
+k_num_predict: 2
+predict_Ls: {"Lmin" : 5.0, "Lmax" : 20.0, "Llen" : 20}
 
 # plotting information  
 plot_kwargs:

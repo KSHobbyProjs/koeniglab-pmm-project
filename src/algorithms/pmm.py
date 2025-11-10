@@ -120,16 +120,18 @@ class PMM:
         return params, losses 
 
     # -------------------------------------------- Prediction -------------------------------------------------
-    def predict_energies(self, Ls_predict, k_num=1):
+    def predict_energies(self, Ls_predict, k_num=None):
         Ls_predict = jnp.atleast_1d(Ls_predict)
         Ms = PMM._M(self._params, Ls_predict)
         eigvals, _ = PMM._get_eigenvalues(Ms)
-        eigvals = eigvals[:, :k_num] # report only the k_num lowest eigenvalues
-        return eigvals
+        if k_num is None: 
+            return eigvals
+        else:
+            return eigvals[:, :k_num] # report only the k_num lowest eigenvalues
 
     # add function here that wraps all pmm mechanics: sampling, training, predicting, saving, and loading
     # keep saving and loading separate in a pipeline code (like if load: PMM.load, etc.)
-    def run_pmm(self, sample_Ls, energies, epochs, Ls_predict, k_num=1, store_loss=100):
+    def run_pmm(self, sample_Ls, energies, epochs, Ls_predict, k_num=None, store_loss=100):
         self.sample_energies(sample_Ls, energies)
         _, losses = self.train_pmm(epochs, store_loss=store_loss)
         eigvals = self.predict_energies(Ls_predict, k_num=k_num)

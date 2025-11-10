@@ -46,7 +46,7 @@ def run_pmm(model_name, pmm_name, model_kwargs, pmm_kwargs, k_num_sample,
     # ------------------------------------------------------------------------------------------------------------------------------------
     # predict energies from trained PMM.
     print("Predicting energies now.")
-    predict_energies = processing.process_pmm.predict_pmm(pmm_instance, predict_Ls, k_num_predict, energy_norm_bounds)
+    predict_energies = processing.process_pmm.predict_pmm(pmm_instance, predict_Ls, energy_norm_bounds)
 
     # -----------------------------------------------------------------------------------------------------------------------------------
     #                                                 Save and Plot Data
@@ -61,6 +61,8 @@ def run_pmm(model_name, pmm_name, model_kwargs, pmm_kwargs, k_num_sample,
 
     # plot predictions
     print("Plotting eigenvalues, loss, and percent error if possible.")
+    # truncate predict_energies to k_num_predict
+    predict_energies = predict_energies[:, :k_num_predict]
     processing.process_pmm.make_all_plots(PLOT_DIR, sample_Ls, exact_Ls, predict_Ls, sample_energies, exact_energies, predict_energies, losses, store_loss, 
                                           save=save, show=show, **plot_kwargs)
     print("Finished plotting.\nExperiment complete.")

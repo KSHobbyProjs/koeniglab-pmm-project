@@ -52,13 +52,13 @@ def train_pmm(pmm_instance, epochs, store_loss):
     losses = pmm_instance.get_state()["losses"]
     return losses
 
-def predict_pmm(pmm_instance, predict_Ls, k_num_predict, norm_bounds):
+def predict_pmm(pmm_instance, predict_Ls, norm_bounds):
     # normalize predict_Ls for prediction in PMM
     lmin, lmax = norm_bounds[0]
     _, _, predict_Ls = utils.math.normalize(predict_Ls, lmin, lmax)
 
     # grab predictions from PMM
-    predict_energies = pmm_instance.predict_energies(predict_Ls, k_num_predict)
+    predict_energies = pmm_instance.predict_energies(predict_Ls, k_num=None)
 
     # denormalize predictions
     predict_energies = utils.math.denormalize(*norm_bounds[1], predict_energies)
