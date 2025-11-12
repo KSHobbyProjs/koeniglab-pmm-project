@@ -16,7 +16,7 @@ EC
 import numpy as np
 import scipy.sparse as ss
 import scipy.ndimage as sn
-
+import scipy
 class EC: 
     """
     Class for handling eigenvector continuation computations.
@@ -97,10 +97,11 @@ class EC:
         self._sample_energies = energies
         self._sample_vectors = eigvecs
         self._S = eigvecs.conj() @ eigvecs.T
+        if np.linalg.cond(self._S) > 1e10: print("raise np.linalg.LinAlgError('Ill-conditioned overlap matrix S; check sample vectors.')") # raise error if S is near singular
         self._sample_Ls = sample_Ls
         return eigvecs
 
-    def ec_predict(self, target_Ls, k_num=1, dilate=False):
+    def ec_predict(self, target_Ls, k_num=None, dilate=False):
         """
         Predict lowest `k_num` eigenpairs at each target L value in `target_Ls` using EC projection.
 
@@ -133,7 +134,8 @@ class EC:
             raise RuntimeError("No sampled vectors found. Run `sample()` first.")
         
         Ls = np.atleast_1d(target_Ls)
-
+        
+        if k_num is None: k_num = self._sample_vectors.shape[0]
         eigenvalues = np.zeros((len(Ls), k_num), dtype=np.float64)
         eigenvectors = np.zeros((len(Ls), k_num, self._model.construct_H(Ls[0]).shape[0]), dtype=np.complex128)
         for i, L in enumerate(Ls):
@@ -144,15 +146,13 @@ class EC:
                 sample_vectors, S = self._sample_vectors, self._S
             H = self._model.construct_H(L)
             H_proj = sample_vectors.conj() @ H @ sample_vectors.T
-            eigval, eigvec = ss.linalg.eigsh(H_proj, M=S, k=k_num, which='SA')
-            sort_indices = np.argsort(eigval)
-            eigenvalues[i] = eigval[sort_indices][:k_num]
-            eigenvectors[i] = eigvec[:, sort_indices][:, :k_num].T @ sample_vectors # eigenvectors have to be dotted with sample vectors since they're coordinate vectors
-        
+            eigval, eigvec = scipy.linalg.eigh(H_proj, S)
+            eigenvalues[i] = eigval[:k_num] # eigenvalues are already sorted in ascending order, so no need for argsort
+            eigenvectors[i] = eigvec[:, :k_num].T @ sample_vectors # eigenvectors have to be dotted with sample vectors since they're coordinate vectors 
         return eigenvalues, eigenvectors
 
 
-    def run_ec(self, sample_Ls, target_Ls, k_num_sample=1, k_num_predict=1, dilate=False):
+    def run_ec(self, sample_Ls, target_Ls, k_num_sample=1, k_num_predict=None, dilate=False):
         """
         Wrapper for sampling and predicting eigenpairs at target L values.
 
@@ -169,7 +169,7 @@ class EC:
         k_num_sample : int, optional
             Number of lowest eigenpairs to sample. Default is 1.
         k_num_predict : int, optional
-            Number of lowest eigenpairs to predict. Default is 1. 
+            Number of lowest eigenpairs to predict. Default is None (which returns all eigenvalues available).
         dilate : bool, optional
             If True, dilates the sampled eigenvectors to match the target `target_Ls`
             before computing the projected matrices. This option only makes sense when

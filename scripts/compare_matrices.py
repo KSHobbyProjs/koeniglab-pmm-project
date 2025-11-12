@@ -20,11 +20,11 @@ import pickle
 from src import utils
 
 def main():
-    ec_path = "."
+    ec_path = os.path.join(utils.paths.EC_DIR, "ec_predicted_eigenpairs__Gaussian1d__N_128__V0_-4.000__R_2.000__sample_Ls_min-6.000--max-9.000--len-4--hash-9c8e60__k_num_sample_4.pkl")
     pmm_path = "."
-
-    with open(pmm_path, "rb") as f:
-        pmm_state = 
+    
+    _, ec_eigenvalues = utils.io.load_eigenvalues(ec_path)
+    _, pmm_eigenvalues = utils.io.load_eigenvalues(pmm_path)
 
 if __name__=="__main__":
     main()

@@ -30,13 +30,13 @@ def process_ec_predicted_eigenpairs(
     # sample energies
     sample_energies = sample_ec(ec_instance, sample_Ls, k_num_sample)
     # after sampling, predict energies with EC algorithm
-    predict_energies, predict_eigenvectors = predict_ec(ec_instance, predict_Ls, k_num_predict, dilate=dilate)
+    predict_energies, predict_eigenvectors = predict_ec(ec_instance, predict_Ls, dilate=dilate)
 
     # save state
     utils.io.save_eigenpairs(file_path, predict_Ls, predict_energies, predict_eigenvectors)
 
     # plot the comparison between the exact energies and predicted energies
-    utils.plot.plot_compare_energies(plot_dir, sample_Ls, exact_Ls, predict_Ls, sample_energies, exact_energies, predict_energies, save=True, show=False, **(plot_kwargs or {}))
+    utils.plot.plot_compare_energies(plot_dir, sample_Ls, exact_Ls, predict_Ls, sample_energies, exact_energies, predict_energies[:, :k_num_predict], save=True, show=False, **(plot_kwargs or {}))
 
 def initialize_ec(model_name, **model_kwargs):
     submodule_name, class_name = model_name.split(".", 1)
@@ -52,6 +52,6 @@ def sample_ec(ec_instance, sample_Ls, k_num):
     sample_energies = ec_instance.get_state()["sample_energies"]
     return sample_energies
 
-def predict_ec(ec_instance, predict_Ls, k_num, dilate=False):
-    eigenvalues, eigenvectors = ec_instance.ec_predict(predict_Ls, k_num, dilate)
+def predict_ec(ec_instance, predict_Ls, dilate=False):
+    eigenvalues, eigenvectors = ec_instance.ec_predict(predict_Ls, k_num=None, dilate=dilate)
     return eigenvalues, eigenvectors
