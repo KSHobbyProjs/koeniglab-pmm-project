@@ -1,20 +1,21 @@
-# ignore all temporary python files (pycache, pyc, ipynb_checkpoints)
+# ignore all temporary python files (pycache, pyc, ipynb_checkpoints).
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
 
-# ignore the local python environment
+# ignore the local python environment.
 .venv/
 
-# ignore all large data files (.pkl), all normalization files (.json)
+# ignore all large data files (.pkl), all normalization files (.json).
 *.pkl
 *.json
 
-# ignore all large PMM result and EC result folders
+# ignore all large PMM result, EC result folders, and sample_data folders.
 results/*
 data/ec_data/*
+data/sample_data/*
 
-# except the .gitkeep file in results so that the directory itself isn't deleted, similarly for 
+# except the .gitkeep file in results, ec_data, and sample_data directories aren't deleted.
 !results/.gitkeep
 !data/ec_data/.gitkeep
 !data/sample_data/.gitkeep

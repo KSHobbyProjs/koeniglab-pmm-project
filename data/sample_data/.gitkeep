@@ -1,0 +1,3 @@
+# tell git to keep this file and directory rather than ignore it
+# this folder is created upon running the program, but it's 
+# helpful to have this directory visible in the remote repo
