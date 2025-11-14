@@ -13,3 +13,5 @@ __pycache__/
 # ignore all large PMM result and EC result folders
 results/*
 data/ec_data/*
+
+!results/
