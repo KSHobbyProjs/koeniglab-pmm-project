@@ -14,8 +14,10 @@ __pycache__/
 results/*
 data/ec_data/*
 data/sample_data/*
+data/exact_data/*
 
 # except the .gitkeep file in results, ec_data, and sample_data directories aren't deleted.
 !results/.gitkeep
 !data/ec_data/.gitkeep
 !data/sample_data/.gitkeep
+!data/exact_data/.gitkeep
