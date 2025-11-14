@@ -82,7 +82,7 @@ def load_config(path):
             if lexp == 1.0:
                 return np.linspace(lmin, lmax, llen)
             else:
-                return lmin + np.linspace(lmin, lmax, llen)**lexp * (lmax - lmin)
+                return lmin + np.linspace(0, 1, llen)**lexp * (lmax - lmin)
         else:
             raise TypeError(f"{val} needs to either be an int, float, list, or dict. If dict, it needs to have 'Lmax', 'Lmin', and 'Llen' keys.")
     
