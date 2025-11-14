@@ -16,8 +16,6 @@ data/ec_data/*
 
 # keep one results folder as an example
 !results/
-!results/Gaussian3dDVR__N_32__V0_-4.000__R_2.000/
-!results/Gaussian3dDVR__N_32__V0_-4.000__R_2.000/pmm_name_PMM__dim_6__num_primary_2__k_num_sample_1__sample_Ls_min-5.000--max-20.000--len-20--hash-df1eed__num_secondary_0__eta_0.010__beta1_0.900__beta2_0.999__eps_1.000e-08__absmaxgrad_1.000e+03__l2_0.000__mag_0.100__seed_135/
 !results/Gaussian3dDVR__N_32__V0_-4.000__R_2.000/pmm_name_PMM__dim_6__num_primary_2__k_num_sample_1__sample_Ls_min-5.000--max-20.000--len-20--hash-df1eed__num_secondary_0__eta_0.010__beta1_0.900__beta2_0.999__eps_1.000e-08__absmaxgrad_1.000e+03__l2_0.000__mag_0.100__seed_135/plots/*
 
 # keep one EC data folder as an example
