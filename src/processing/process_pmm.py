@@ -18,6 +18,8 @@ def sample_pmm(pmm_instance, sample_Ls, model_name, k_num_sample, **model_kwargs
         print("[INFO] No data found at sample_data dir. Computing sample data now.")
         # compute sample energies from sample_Ls
         sample_energies, _ = process_exact.compute_exact_eigenpairs(model_name, sample_Ls, k_num_sample, **model_kwargs)
+        # save sample eigenvalues (currently not doing this because it clutters space and it's already too quick for this to be of much use)
+        #utils.io.save_eigenvalues(sample_path, sample_Ls, sample_energies, eigenstates=None)
 
     # normalize data before training
     lmin, lmax, normed_sample_Ls = utils.math.normalize(sample_Ls)

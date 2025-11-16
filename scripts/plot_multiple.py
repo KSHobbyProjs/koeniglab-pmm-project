@@ -7,36 +7,9 @@ import matplotlib.pyplot as plt
 
 def main():
     # --------------------------------------------------------------------------
-    #                  CONFIG 
+    #                 EC vs PMM Comparison       
     # --------------------------------------------------------------------------
-    model_name = "gaussian.Gaussian1d"
-    model_kwargs = {"N" : 128, "V0" : -4.0, "R" : 2.0}
    
-
-    sample_Ls_ec = np.array([6.0, 7.0, 8.0, 9.0])
-    k_num_sample_ec = 4
-    sample_Ls_pmm = np.linspace(5.0, 9.0, 20)
-    k_num_sample_pmm = 1
-
-
-    pmm_kwargs = {"pmm_name"    : "PMM", 
-                  "dim"         : 8,
-                  "num_primary" : 2,
-                  "num_secondary" : 0,
-                  "k_num_sample" : k_num_sample_pmm,
-                  "sample_Ls" : utils.misc.create_sample_Ls_string(sample_Ls_pmm),
-                  "eta" : 1.0e-2,
-                  "beta1" : 0.9,
-                  "beta2" : 0.999,
-                  "eps" : 1.0e-8,
-                  "absmaxgrad" : 1.0e3,
-                  "l2" : 0.0,
-                  "mag" : 1.0e-1,
-                  "seed" : 135
-                  }
-    
-    k_num_predict = 1
-
     # ----------------------------------------------------------------------------
     model_string = utils.misc.make_model_string(model_name, **model_kwargs)
     exact_str = "exact_eigenpairs__" + model_string + ".pkl"
