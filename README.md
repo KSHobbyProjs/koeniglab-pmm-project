@@ -1,5 +1,6 @@
 # koeniglab-pmm-project
 A repository storing a program that runs a parametric matrix model on a physical model and plots the results.
+See `https://github.com/KSHobbyProjs/pmm-analysis-kit.git` for a more up-to-date repository.
 
 ---
 
