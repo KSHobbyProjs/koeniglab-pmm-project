@@ -1,5 +1,5 @@
 # koeniglab-pmm-project
-A repository storing research progress into parametric matrix models (PMMs) applied to finite volume physics.
+A repository storing a program that runs a parametric matrix model on a physical model and plots the results.
 
 ---
 
@@ -78,7 +78,7 @@ koeniglab-pmm-project/
 
 ---
 
-## Extending 
+## Extending the Code
 
 To add a new model:
 1. Create a new file under `src/physics_models/` (e.g., `double_well.py`).
