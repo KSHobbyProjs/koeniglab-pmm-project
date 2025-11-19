@@ -1,6 +1,36 @@
 # koeniglab-pmm-project
-A repository storing research progress into parametric matrix models applied to finite volume physics.
+A repository storing research progress into parametric matrix models (PMMs) applied to finite volume physics.
 
+---
+
+## Installation
+
+Clone the repository and install dependencies:
+
+```bash
+git clone https://github.com/KSHobbyProjs/koeniglab-pmm-project.git
+cd koeniglab-pmm-project
+pip install -r requirements.txt
+```
+Dependencies include `numpy`, `scipy`, `matplotlib`, `jax`
+
+---
+
+## Usage
+
+Run an experiment using `main.py`.  
+This script samples exact data, trains a PMM, and plots predictions.
+
+```bash
+./main.py \
+    --model_name gaussian.Gaussian1d \
+    --epochs 5000 \
+    --sample_Ls 5.0,20.0:50 \
+    --predict_Ls None \
+    --k_num_sample 3 \
+    --k_num_predict 3 \
+    --store_loss 100
+```
 ---
 
 ## Project Structure
@@ -41,72 +71,14 @@ koeniglab-pmm-project/
 
 ---
 
-## Installation
+## Utilities
 
-Clone the repository and install dependencies:
-
-```bash
-git clone https://github.com/KSHobbyProjs/koeniglab-pmm-project.git
-cd koeniglab-pmm-project
-pip install -r requirements.txt
-```
-
-Typical dependencies include:
-- `numpy`
-- `scipy`
-- `matplotlib`
-- `jax`
+1. Load all energy data from all physics models by running `python -m scripts.get_exact_data` from root.
+2. Load all EC predictions by running `python -m scripts.get_ec_predicted_data`.
 
 ---
 
-## Usage
-
-Run an experiment using the provided `main.py` script.  
-This script samples exact data, trains a PMM, and plots predictions.
-
-```bash
-python -m src.main \
-    --model_name gaussian.Gaussian1d \
-    --epochs 5000 \
-    --sample_Ls 5.0,20.0:50 \
-    --predict_Ls None \
-    --k_num_sample 3 \
-    --k_num_predict 3 \
-    --store_loss 100
-```
-
-### Example Arguments
-- `--model_name`: Which exact model to use (`gaussian.Gaussian1d`, etc.)
-- `--pmm_name`: Which PMM model to use (`PMM`, etc.) 
-- `--sample_Ls`: Parameter values at which exact data is computed
-- `--predict_Ls`: Parameter values where predictions are evaluated
-- `--epochs`: Number of PMM training iterations
-- `--store_loss`: How often to record loss during training
-- `--k_num_sample`, `--k_num_predict`: Number of eigenvalues to train and predict
-
-All results are automatically stored under:
-```
-results/<experiment directory>/
-```
-
----
-
-## Example Workflow
-
-1. Load all energy data from all physics models by running `python -m scripts.get_exact_data` from root (optional).
-2. Load all EC predictions by running `python -m scripts.get_ec_predicted_data` (for demonstration purposes).
-3. Train a PMM using a small subset of sampled parameter values.
-4. Predict eigenvalues at unseen parameters.
-5. Plot results to compare PMM predictions vs. exact data.
-
-Example plotting utilities:
-```python
-from src.utils.plotting import plot_eigenvalues, plot_loss
-```
-
----
-
-## Extending the Framework
+## Extending 
 
 To add a new model:
 1. Create a new file under `src/physics_models/` (e.g., `double_well.py`).
